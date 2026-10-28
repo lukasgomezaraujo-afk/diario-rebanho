@@ -1,0 +1,5 @@
+node_modules/
+# Arquivos de voz são colocados à mão e não vão para o repositório.
+public/vendor/
+public/modelo-pt/*.tar.gz
+public/modelo-pt/*.zip
