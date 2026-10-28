@@ -1,17 +1,28 @@
 // Interface do Diário do Rebanho. Só cuida da tela: as regras ficam em /src.
 import { interpretar } from './src/interpretador.js';
-import { CATEGORIAS, EXPLICACOES, ROTULOS_TIPO, TIPOS, TIPOS_REGISTRO, descrever, nomeCategoria } from './src/rotulos.js';
+import {
+  CATEGORIAS_POR_ESPECIE, ESPECIES, ESPECIE_DA_CATEGORIA, EXPLICACOES, NOMES_ESPECIE, ROTULOS_TIPO, TIPOS, TIPOS_REGISTRO,
+  descrever, nomeCategoria,
+} from './src/rotulos.js';
 import { ordenarRegistros, validarRegistro } from './src/registros.js';
-import { SEM_DADOS, calcularIndicadores, periodoAnual, periodoMensal, resumoTexto } from './src/indicadores.js';
+import {
+  SEM_DADOS, calcularIndicadores, periodoAnual, periodoMensal, resumoPorEspecie, resumoTexto, saldoAtual, temContagemInicial,
+} from './src/indicadores.js';
+import {
+  ENTRADAS, animaisNoRebanho, historicoDoAnimal, registroDeEntrada, situacaoDoAnimal, somarNaContagem, ultimaPesagem, validarAnimal,
+} from './src/animais.js';
 import { formatarData, formatarNumero, formatarReais, isoDeData, lerValorDigitado } from './src/formato.js';
 import { ouvir, verificarVoz } from './voz.js';
 
 const CHAVE = 'diario-rebanho:v1';
-const TELAS = ['aviso', 'inicio', 'voz', 'rapido', 'lancamentos', 'indicadores'];
+const TELAS = ['aviso', 'inicio', 'voz', 'rapido', 'lancamentos', 'relatorio', 'animais', 'animal', 'novo-animal'];
 const ROTULO_ACAO = { nascimento: 'Nasceu', morte: 'Morreu', compra: 'Comprei', venda: 'Vendi', pesagem: 'Pesei', custo: 'Gasto' };
 const ROTULO_CONFIANCA = { alta: 'alta', media: 'média', baixa: 'baixa' };
+const ROTULO_SITUACAO = { 'no-rebanho': 'No rebanho', vendido: 'Vendido', morreu: 'Morreu' };
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const COM_VALOR = ['compra', 'venda', 'custo'];
+// Categorias que existiam antes da separação por espécie.
+const CATEGORIAS_ANTIGAS = { matriz: 'cabra', reprodutor: 'bode' };
 
 const $ = (seletor) => document.querySelector(seletor);
 const hoje = () => isoDeData(new Date());
@@ -22,6 +33,8 @@ const novoId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-$
 let estado = carregar();
 let rascunho = null; // lançamento sendo preenchido no registro rápido
 let entendido = null; // lançamento vindo de uma frase
+let novoAnimal = null; // animal sendo cadastrado
+let animalAberto = null; // id do animal na tela de detalhe
 let pararDeOuvir = null;
 let editandoSaldo = false;
 const agora = new Date();
@@ -29,14 +42,27 @@ const periodo = { modo: 'mensal', ano: agora.getFullYear(), mes: agora.getMonth(
 
 // ---------- Armazenamento ----------
 
+function migrarCategoria(categoria) {
+  return CATEGORIAS_ANTIGAS[categoria] ?? categoria;
+}
+
 function carregar() {
   try {
     const dados = JSON.parse(localStorage.getItem(CHAVE));
-    if (dados && Array.isArray(dados.registros)) return { saldoBase: null, avisoVisto: false, ...dados };
+    if (dados && Array.isArray(dados.registros)) {
+      const registros = dados.registros.map((r) => ({ ...r, categoria: r.categoria ? migrarCategoria(r.categoria) : r.categoria }));
+      let saldoBase = dados.saldoBase ?? null;
+      if (saldoBase) {
+        const porCategoria = {};
+        for (const [c, n] of Object.entries(saldoBase.porCategoria)) porCategoria[migrarCategoria(c)] = (porCategoria[migrarCategoria(c)] ?? 0) + n;
+        saldoBase = { ...saldoBase, porCategoria };
+      }
+      return { avisoVisto: false, animais: [], ...dados, registros, saldoBase };
+    }
   } catch {
     // Sem armazenamento ou dado corrompido: começa vazio.
   }
-  return { registros: [], saldoBase: null, avisoVisto: false };
+  return { registros: [], animais: [], saldoBase: null, avisoVisto: false };
 }
 
 function salvar() {
@@ -56,17 +82,25 @@ function gravarRegistro(registro) {
   salvar();
 }
 
+const animalPorId = (id) => estado.animais.find((a) => a.id === id);
+
 // ---------- Navegação ----------
 
 function irPara(tela, { historico = true } = {}) {
+  if (tela === 'indicadores') tela = 'relatorio';
   if (!TELAS.includes(tela)) tela = 'inicio';
+  if (tela === 'animal' && !animalPorId(animalAberto)) tela = 'animais';
   if (!estado.avisoVisto) tela = 'aviso';
   if (tela !== 'voz') pararGravacao();
   document.querySelectorAll('[data-tela]').forEach((secao) => { secao.hidden = secao.dataset.tela !== tela; });
+  if (tela === 'inicio') renderInicio();
   if (tela === 'voz') abrirVoz();
   if (tela === 'rapido') abrirRapido();
   if (tela === 'lancamentos') renderLancamentos();
-  if (tela === 'indicadores') renderIndicadores();
+  if (tela === 'relatorio') renderRelatorio();
+  if (tela === 'animais') renderAnimais();
+  if (tela === 'animal') renderAnimal();
+  if (tela === 'novo-animal') abrirNovoAnimal();
   window.scrollTo(0, 0);
   if (historico && location.hash !== `#${tela}`) history.pushState(null, '', `#${tela}`);
 }
@@ -111,6 +145,36 @@ const icone = (nome) => `<svg class="icone" viewBox="0 0 24 24" aria-hidden="tru
 // Chip de tipo com a mesma cor e ícone do botão da tela inicial.
 const chipTipo = (campo, tipo, ativo) =>
   `<button type="button" class="chip tipo-${tipo}${ativo ? ' ativo' : ''}" data-campo="${campo}" data-valor="${tipo}" aria-pressed="${ativo}">${icone(tipo)}${ROTULO_ACAO[tipo]}</button>`;
+
+// Categorias separadas por espécie, para cabra, ovelha e vaca não ficarem misturadas.
+const chipsPorEspecie = (campo, ativo) => ESPECIES.map((especie) => `
+  <p class="especie-titulo">${NOMES_ESPECIE[especie]}</p>
+  <div class="chips categorias">${CATEGORIAS_POR_ESPECIE[especie].map((c) => chip(campo, c, capital(nomeCategoria(c, 1)), ativo === c, EXPLICACOES[c])).join('')}</div>`).join('');
+
+const mostrarErros = (seletor, erros) => { $(seletor).innerHTML = erros.map((e) => `<p>${esc(e)}</p>`).join(''); };
+
+// ---------- Início: o rebanho hoje ----------
+
+function renderInicio() {
+  const resumo = resumoPorEspecie(saldoAtual(estado.saldoBase, estado.registros, hoje()));
+  const especies = Object.entries(resumo);
+  const alvo = $('#rebanho-hoje');
+  if (especies.length === 0) {
+    alvo.innerHTML = `
+      <h2>Seu rebanho hoje</h2>
+      <p class="dica-esquerda">Ainda não há animais anotados. Toque em Nasceu ou Comprei, ou conte os que você já tem.</p>
+      <button class="btn" data-acao="contar">Contar os animais que já tenho</button>`;
+    return;
+  }
+  alvo.innerHTML = `
+    <h2>Seu rebanho hoje</h2>
+    ${especies.map(([especie, e]) => `
+      <div class="especie-hoje">
+        <div class="especie-total"><span>${NOMES_ESPECIE[especie]}</span><strong>${e.total}</strong></div>
+        <p class="especie-detalhe">${Object.entries(e.categorias).filter(([, n]) => n !== 0).map(([c, n]) => `${nomeCategoria(c, n)} ${n}`).join(' · ') || 'nenhum animal agora'}</p>
+      </div>`).join('')}
+    ${temContagemInicial(estado.saldoBase) ? '' : '<p class="dica-esquerda">Contando só o que você anotou. <button class="link" data-acao="contar">Informar os animais que você já tinha</button></p>'}`;
+}
 
 // ---------- Registro por voz ou frase ----------
 
@@ -186,6 +250,7 @@ function registroDe(fonte) {
     pesoKg: fonte.tipo === 'pesagem' ? lerValorDigitado(fonte.pesoTexto) : null,
     descricao: fonte.descricao ?? '',
     data: fonte.data ?? hoje(),
+    animalId: fonte.animalId ?? null,
   };
 }
 
@@ -209,7 +274,7 @@ function renderEntendido() {
     partes.push(`<p class="rotulo">O que aconteceu?</p><div class="chips">${TIPOS.map((t) => chipTipo('voz-tipo', t, entendido.tipo === t)).join('')}</div>`);
   }
   if (falta.has('categoria')) {
-    partes.push(`<p class="rotulo">Qual animal?</p><div class="chips categorias">${CATEGORIAS.map((c) => chip('voz-categoria', c, capital(nomeCategoria(c, 1)), entendido.categoria === c, EXPLICACOES[c])).join('')}</div>`);
+    partes.push(`<p class="rotulo">Qual animal?</p>${chipsPorEspecie('voz-categoria', entendido.categoria)}`);
   }
   if (falta.has('quantidade')) {
     partes.push(`<label class="rotulo" for="voz-quantidade">Quantos animais?</label><input id="voz-quantidade" type="number" inputmode="numeric" min="1" step="1" value="${entendido.quantidade ?? ''}">`);
@@ -228,7 +293,7 @@ function renderEntendido() {
 function salvarEntendido() {
   const r = validarRegistro({ ...registroDe(entendido), id: novoId(), criadoEm: Date.now() }, hoje());
   if (!r.ok) {
-    $('#erros-voz').innerHTML = r.erros.map((e) => `<p>${esc(e)}</p>`).join('');
+    mostrarErros('#erros-voz', r.erros);
     return;
   }
   gravarRegistro(r.registro);
@@ -242,7 +307,10 @@ function salvarEntendido() {
 // ---------- Registro rápido ----------
 
 function novoRascunho(dados = {}) {
-  rascunho = { id: null, tipo: null, categoria: null, quantidade: null, valorTexto: '', pesoTexto: '', descricao: '', data: hoje(), criadoEm: null, ...dados };
+  rascunho = {
+    id: null, tipo: null, categoria: null, quantidade: null, valorTexto: '', pesoTexto: '', descricao: '',
+    data: hoje(), criadoEm: null, animalId: null, nomeNovo: '', ...dados,
+  };
 }
 
 function abrirRapido() {
@@ -252,21 +320,37 @@ function abrirRapido() {
   $('#valor').value = rascunho.valorTexto;
   $('#descricao').value = rascunho.descricao;
   $('#peso').value = rascunho.pesoTexto;
+  $('#nome-novo').value = rascunho.nomeNovo;
   $('#data').value = rascunho.data;
   $('#data').max = hoje();
   $('#erros-rapido').textContent = '';
   atualizarRapido();
 }
 
+// Animais identificados que podem estar neste lançamento (mesma categoria, ainda no rebanho).
+function animaisPossiveis(r) {
+  return animaisNoRebanho(estado.animais, estado.registros)
+    .filter((a) => a.categoria === r.categoria || a.id === r.animalId);
+}
+
 function atualizarRapido() {
   const r = rascunho;
   const comAnimal = r.tipo && r.tipo !== 'custo';
   const pronto = r.tipo === 'custo' || Boolean(comAnimal && r.categoria && r.quantidade);
+  const umSo = pronto && comAnimal && r.quantidade === 1;
+  const entraNovo = umSo && (r.tipo === 'nascimento' || r.tipo === 'compra') && !r.id;
+  const possiveis = umSo && !entraNovo ? animaisPossiveis(r) : [];
   $('#chips-tipo').innerHTML = TIPOS_REGISTRO.map((t) => chipTipo('tipo', t, r.tipo === t)).join('');
-  $('#chips-categoria').innerHTML = CATEGORIAS.map((c) => chip('categoria', c, capital(nomeCategoria(c, 1)), r.categoria === c, EXPLICACOES[c])).join('');
+  $('#chips-categoria').innerHTML = chipsPorEspecie('categoria', r.categoria);
   $('#chips-quantidade').innerHTML = [1, 2, 3, 4, 5, 6].map((n) => chip('quantidade', n, n, r.quantidade === n)).join('');
   $('#grupo-categoria').hidden = !comAnimal;
   $('#grupo-quantidade').hidden = !comAnimal || !r.categoria;
+  $('#grupo-animal').hidden = possiveis.length === 0;
+  $('#chips-animal').innerHTML = possiveis.length === 0 ? '' : [
+    chip('animal', '', 'Nenhum em especial', !r.animalId),
+    ...possiveis.map((a) => chip('animal', a.id, a.identificacao, r.animalId === a.id)),
+  ].join('');
+  $('#grupo-nome-novo').hidden = !entraNovo;
   $('#grupo-valor').hidden = !pronto || !COM_VALOR.includes(r.tipo);
   $('#legenda-valor').textContent = r.tipo === 'custo' ? 'Quanto gastou? (R$)' : `Valor total da ${r.tipo === 'compra' ? 'compra' : 'venda'} (R$, se souber)`;
   $('#campo-descricao').hidden = r.tipo !== 'custo';
@@ -280,6 +364,8 @@ function escolherNoRapido(campo, valor) {
   if (campo === 'quantidade') {
     rascunho.quantidade = Number(valor);
     $('#qtd-outro').value = '';
+  } else if (campo === 'animal') {
+    rascunho.animalId = valor || null;
   } else {
     rascunho[campo] = valor;
   }
@@ -287,6 +373,7 @@ function escolherNoRapido(campo, valor) {
     rascunho.categoria = null;
     rascunho.quantidade = null;
   }
+  if (campo === 'categoria' && valor !== anterior) rascunho.animalId = null;
   atualizarRapido();
   const proximo = { tipo: valor === 'custo' ? '#grupo-valor' : '#grupo-categoria', categoria: '#grupo-quantidade', quantidade: '#salvar-rapido' }[campo];
   const alvo = proximo && $(proximo);
@@ -295,33 +382,52 @@ function escolherNoRapido(campo, valor) {
 
 function salvarRapido(evento) {
   evento.preventDefault();
-  const r = validarRegistro({ ...registroDe(rascunho), id: rascunho.id ?? novoId(), criadoEm: rascunho.criadoEm ?? Date.now() }, hoje());
+  const editando = Boolean(rascunho.id);
+  const id = rascunho.id ?? novoId();
+  const dados = { ...registroDe(rascunho), id, criadoEm: rascunho.criadoEm ?? Date.now() };
+  const nome = rascunho.nomeNovo.trim();
+  const entraNovo = !editando && nome && dados.quantidade === 1 && (dados.tipo === 'nascimento' || dados.tipo === 'compra');
+  let animal = null;
+  if (entraNovo) {
+    const a = validarAnimal({ id: novoId(), identificacao: nome, categoria: dados.categoria, entrada: dados.tipo, data: dados.data, criadoEm: Date.now() }, hoje(), estado.animais, estado.registros);
+    if (!a.ok) { mostrarErros('#erros-rapido', a.erros); return; }
+    animal = a.animal;
+    dados.animalId = animal.id;
+  }
+  const r = validarRegistro(dados, hoje());
   if (!r.ok) {
-    $('#erros-rapido').innerHTML = r.erros.map((e) => `<p>${esc(e)}</p>`).join('');
+    mostrarErros('#erros-rapido', r.erros);
     return;
   }
-  const editando = Boolean(rascunho.id);
+  if (animal) estado.animais.push(animal);
   gravarRegistro(r.registro);
-  avisar(`${editando ? 'Corrigido' : 'Salvo'}: ${descrever(r.registro)}.`);
+  const nomeAnimal = r.registro.animalId ? ` (${animalPorId(r.registro.animalId)?.identificacao})` : '';
+  avisar(`${editando ? 'Corrigido' : 'Salvo'}: ${descrever(r.registro)}${nomeAnimal}.`);
+  const voltarAoAnimal = rascunho.voltarAoAnimal;
   rascunho = null;
-  irPara(editando ? 'lancamentos' : 'inicio');
+  irPara(voltarAoAnimal ? 'animal' : editando ? 'lancamentos' : 'inicio');
 }
 
 // ---------- Lançamentos ----------
+
+function itemLancamento(r, { acoes = true } = {}) {
+  const animal = r.animalId ? animalPorId(r.animalId) : null;
+  return `
+    <li class="item">
+      <div><span class="etiqueta tipo-${r.tipo}">${icone(r.tipo)}${ROTULOS_TIPO[r.tipo]}</span> <span class="data">${formatarData(r.data)}</span></div>
+      <div>${esc(capital(descrever(r)))}${animal ? ` · <strong>${esc(animal.identificacao)}</strong>` : ''}</div>
+      ${acoes ? `<div class="acoes">
+        <button class="btn" data-acao="editar" data-id="${esc(r.id)}">Editar</button>
+        <button class="btn perigo" data-acao="apagar" data-id="${esc(r.id)}">Apagar</button>
+      </div>` : ''}
+    </li>`;
+}
 
 function renderLancamentos() {
   const lista = ordenarRegistros(estado.registros);
   $('#lista').innerHTML = lista.length === 0
     ? '<li class="vazio">Nenhum lançamento ainda.</li>'
-    : lista.map((r) => `
-      <li class="item">
-        <div><span class="etiqueta tipo-${r.tipo}">${icone(r.tipo)}${ROTULOS_TIPO[r.tipo]}</span> <span class="data">${formatarData(r.data)}</span></div>
-        <div>${esc(capital(descrever(r)))}</div>
-        <div class="acoes">
-          <button class="btn" data-acao="editar" data-id="${esc(r.id)}">Editar</button>
-          <button class="btn perigo" data-acao="apagar" data-id="${esc(r.id)}">Apagar</button>
-        </div>
-      </li>`).join('');
+    : lista.map((r) => itemLancamento(r)).join('');
 }
 
 function editar(id) {
@@ -345,22 +451,130 @@ async function apagar(id) {
   avisar('Lançamento apagado.');
 }
 
-// ---------- Indicadores ----------
+// ---------- Animais ----------
 
-function renderIndicadores() {
-  const mostrarFormulario = !estado.saldoBase || editandoSaldo;
-  $('#form-saldo').hidden = !mostrarFormulario;
-  $('#painel').hidden = mostrarFormulario;
-  if (mostrarFormulario) renderFormSaldo();
+function renderAnimais() {
+  const alvo = $('#lista-animais');
+  if (estado.animais.length === 0) {
+    alvo.innerHTML = '<p class="vazio">Nenhum animal cadastrado. Cadastre os que você quer acompanhar um por um, como uma matriz ou o reprodutor.</p>';
+    return;
+  }
+  alvo.innerHTML = ESPECIES.map((especie) => {
+    const daEspecie = estado.animais.filter((a) => ESPECIE_DA_CATEGORIA[a.categoria] === especie);
+    if (daEspecie.length === 0) return '';
+    const comSituacao = daEspecie
+      .map((a) => ({ a, s: situacaoDoAnimal(a, estado.registros), peso: ultimaPesagem(a.id, estado.registros) }))
+      .sort((x, y) => (x.s.situacao === 'no-rebanho' ? 0 : 1) - (y.s.situacao === 'no-rebanho' ? 0 : 1) || x.a.identificacao.localeCompare(y.a.identificacao));
+    return `
+      <p class="especie-titulo">${NOMES_ESPECIE[especie]}</p>
+      <ul class="lista">${comSituacao.map(({ a, s, peso }) => `
+        <li><button class="item item-animal${s.situacao === 'no-rebanho' ? '' : ' saiu'}" data-acao="abrir-animal" data-id="${esc(a.id)}">
+          <strong>${esc(a.identificacao)}</strong>
+          <span>${capital(nomeCategoria(a.categoria, 1))} · ${ROTULO_SITUACAO[s.situacao]}${peso ? ` · ${formatarNumero(peso.pesoKg)} kg` : ''}</span>
+        </button></li>`).join('')}
+      </ul>`;
+  }).join('');
+}
+
+function renderAnimal() {
+  const a = animalPorId(animalAberto);
+  const s = situacaoDoAnimal(a, estado.registros);
+  const peso = ultimaPesagem(a.id, estado.registros);
+  const historico = historicoDoAnimal(a.id, estado.registros).reverse();
+  $('#titulo-animal').textContent = a.identificacao;
+  $('#detalhe-animal').innerHTML = `
+    <div class="cartao">
+      <p><strong>${capital(nomeCategoria(a.categoria, 1))}</strong> (${NOMES_ESPECIE[ESPECIE_DA_CATEGORIA[a.categoria]].toLowerCase()})</p>
+      <p>Situação: <strong>${ROTULO_SITUACAO[s.situacao]}</strong>${s.data ? ` em ${formatarData(s.data)}` : ''}</p>
+      <p>Entrada: ${ENTRADAS[a.entrada]} em ${formatarData(a.data)}</p>
+      <p>Último peso: ${peso ? `<strong>${formatarNumero(peso.pesoKg)} kg</strong> em ${formatarData(peso.data)}` : 'ainda não pesado'}</p>
+      ${a.observacao ? `<p>${esc(a.observacao)}</p>` : ''}
+    </div>
+    ${s.situacao === 'no-rebanho' ? `
+      <div class="acoes-animal">
+        <button class="btn tipo-pesagem colorido" data-acao="animal-registrar" data-valor="pesagem">${icone('pesagem')}Pesar</button>
+        <button class="btn tipo-venda colorido" data-acao="animal-registrar" data-valor="venda">${icone('venda')}Vendi</button>
+        <button class="btn tipo-morte colorido" data-acao="animal-registrar" data-valor="morte">${icone('morte')}Morreu</button>
+      </div>` : ''}
+    <h2 class="titulo-secao">Histórico</h2>
+    <ul class="lista">${historico.length ? historico.map((r) => itemLancamento(r, { acoes: false })).join('') : '<li class="vazio">Nada anotado para este animal ainda.</li>'}</ul>
+    <button class="btn perigo" data-acao="apagar-animal">Apagar o cadastro</button>`;
+}
+
+function registrarParaAnimal(tipo) {
+  const a = animalPorId(animalAberto);
+  novoRascunho({ tipo, categoria: a.categoria, quantidade: 1, animalId: a.id, voltarAoAnimal: true });
+  irPara('rapido');
+}
+
+async function apagarAnimal() {
+  const a = animalPorId(animalAberto);
+  if (!(await confirmar(`Apagar o cadastro de ${a.identificacao}? Os lançamentos continuam na lista, sem o nome.`, 'Sim, apagar'))) return;
+  estado.animais = estado.animais.filter((x) => x.id !== a.id);
+  estado.registros = estado.registros.map((r) => (r.animalId === a.id ? { ...r, animalId: null } : r));
+  salvar();
+  avisar('Cadastro apagado.');
+  irPara('animais');
+}
+
+function abrirNovoAnimal() {
+  novoAnimal ??= { identificacao: '', categoria: null, entrada: null, valorTexto: '', data: hoje(), observacao: '' };
+  $('#animal-nome').value = novoAnimal.identificacao;
+  $('#animal-valor').value = novoAnimal.valorTexto;
+  $('#animal-data').value = novoAnimal.data;
+  $('#animal-data').max = hoje();
+  $('#animal-obs').value = novoAnimal.observacao;
+  $('#erros-animal').textContent = '';
+  atualizarNovoAnimal();
+}
+
+function atualizarNovoAnimal() {
+  $('#animal-categorias').innerHTML = chipsPorEspecie('animal-categoria', novoAnimal.categoria);
+  $('#animal-entradas').innerHTML = Object.entries(ENTRADAS).map(([valor, rotulo]) => chip('animal-entrada', valor, rotulo, novoAnimal.entrada === valor)).join('');
+  $('#grupo-animal-valor').hidden = novoAnimal.entrada !== 'compra';
+}
+
+function salvarNovoAnimal(evento) {
+  evento.preventDefault();
+  const a = validarAnimal({ ...novoAnimal, id: novoId(), criadoEm: Date.now() }, hoje(), estado.animais, estado.registros);
+  if (!a.ok) { mostrarErros('#erros-animal', a.erros); return; }
+  const entrada = registroDeEntrada(a.animal, lerValorDigitado(novoAnimal.valorTexto));
+  let registro = null;
+  if (entrada) {
+    const r = validarRegistro({ ...entrada, id: novoId(), criadoEm: Date.now() }, hoje());
+    if (!r.ok) { mostrarErros('#erros-animal', r.erros); return; }
+    registro = r.registro;
+  }
+  estado.animais.push(a.animal);
+  if (registro) estado.registros.push(registro);
+  else estado.saldoBase = somarNaContagem(estado.saldoBase, a.animal.categoria);
+  salvar();
+  avisar(`${a.animal.identificacao} cadastrado.`);
+  novoAnimal = null;
+  animalAberto = a.animal.id;
+  irPara('animal');
+}
+
+// ---------- Relatório ----------
+
+function renderRelatorio() {
+  $('#form-saldo').hidden = !editandoSaldo;
+  $('#painel').hidden = editandoSaldo;
+  if (editandoSaldo) renderFormSaldo();
   else renderPainel();
 }
 
 function renderFormSaldo() {
   const atual = estado.saldoBase?.porCategoria ?? {};
-  $('#campos-saldo').innerHTML = CATEGORIAS.map((c) => `
-    <label class="rotulo" for="saldo-${c}">${capital(nomeCategoria(c, 2))} <small>(${esc(EXPLICACOES[c])})</small></label>
-    <input id="saldo-${c}" data-categoria="${c}" type="number" inputmode="numeric" min="0" step="1" value="${atual[c] ?? ''}">`).join('');
-  $('#data-saldo').value = estado.saldoBase?.data ?? hoje();
+  $('#campos-saldo').innerHTML = ESPECIES.map((especie) => `
+    <p class="especie-titulo">${NOMES_ESPECIE[especie]}</p>
+    ${CATEGORIAS_POR_ESPECIE[especie].map((c) => `
+      <label class="rotulo" for="saldo-${c}">${capital(nomeCategoria(c, 2))} <small>(${esc(EXPLICACOES[c])})</small></label>
+      <input id="saldo-${c}" data-categoria="${c}" type="number" inputmode="numeric" min="0" step="1" value="${atual[c] ?? ''}">`).join('')}`).join('');
+  // Sem contagem feita, sugere o dia do primeiro lançamento: a contagem vale para o começo desse dia.
+  const primeiro = estado.registros.map((r) => r.data).sort().at(0);
+  const dataReal = temContagemInicial(estado.saldoBase) ? estado.saldoBase.data : primeiro ?? hoje();
+  $('#data-saldo').value = dataReal;
   $('#data-saldo').max = hoje();
   $('#erros-saldo').textContent = '';
 }
@@ -379,14 +593,14 @@ function salvarSaldo(evento) {
   if (!data) erros.push('Informe a data da contagem.');
   else if (data > hoje()) erros.push('A data da contagem não pode ser no futuro.');
   if (erros.length) {
-    $('#erros-saldo').innerHTML = erros.map((e) => `<p>${esc(e)}</p>`).join('');
+    mostrarErros('#erros-saldo', erros);
     return;
   }
   estado.saldoBase = { data, porCategoria };
   editandoSaldo = false;
   salvar();
   avisar('Contagem guardada.');
-  renderIndicadores();
+  renderRelatorio();
 }
 
 function tituloPeriodo() {
@@ -410,6 +624,24 @@ function indicadoresAtuais() {
 }
 
 const mostrar = (valor, formatar) => (valor === SEM_DADOS ? 'sem dados' : formatar(valor));
+const porcento = (v) => `${formatarNumero(v, 1)}%`;
+
+function cartaoEspecie(especie, e) {
+  const linhas = Object.entries(e.tabela).map(([c, l]) => `
+    <div class="linha-cat">
+      <div><strong>${esc(capital(nomeCategoria(c, 2)))}</strong>
+        <small>início ${l.inicial} · +${l.nascimentos} nasc. · +${l.compras} compras · −${l.mortes} mortes · −${l.vendas} vendas</small></div>
+      <div class="final">${l.final}</div>
+    </div>`).join('');
+  return `
+    <div class="cartao">
+      <h2>${NOMES_ESPECIE[especie]}</h2>
+      <div class="numero">${e.final} <small>${e.final === 1 ? 'animal' : 'animais'}</small></div>
+      <p>Começou o período com ${e.inicial}. Nasceram <strong>${e.nascimentos}</strong>, morreram <strong>${e.mortes}</strong>, comprou <strong>${e.compras}</strong>, vendeu <strong>${e.vendas}</strong>.</p>
+      <p>Mortalidade: <strong>${mostrar(e.mortalidade, porcento)}</strong>${e.receitaVendas ? ` · Vendas: <strong>${formatarReais(e.receitaVendas)}</strong>` : ''}</p>
+      ${linhas}
+    </div>`;
+}
 
 function renderPainel() {
   const ind = indicadoresAtuais();
@@ -425,35 +657,25 @@ function renderPainel() {
     </div>`];
 
   if (ind.erro) {
-    partes.push(`<div class="caixa alerta"><p>${esc(ind.erro)}</p><p>A contagem inicial é de ${formatarData(estado.saldoBase.data)}.</p></div>`);
+    partes.push(`<div class="caixa alerta"><p>${esc(ind.erro)}</p></div>`);
   } else {
-    if (ind.cortado) partes.push(`<p class="dica">Contando de ${formatarData(ind.inicio)} a ${formatarData(ind.fim)}: antes da contagem inicial ou depois de hoje não há dados.</p>`);
-    const linhas = Object.entries(ind.tabela).map(([c, l]) => `
-      <div class="linha-cat">
-        <div><strong>${esc(capital(nomeCategoria(c, 2)))}</strong>
-          <small>início ${l.inicial} · +${l.nascimentos} nasc. · +${l.compras} compras · −${l.mortes} mortes · −${l.vendas} vendas</small></div>
-        <div class="final">${l.final}</div>
-      </div>`).join('');
-    const metodo = ind.media.metodo === 'media-diaria'
-      ? 'média dos saldos de cada dia do período'
-      : '(animais no início + animais no fim) ÷ 2';
+    if (ind.semContagemInicial) {
+      partes.push('<div class="caixa alerta"><p>A conta começa do zero e soma só o que você anotou. Se você já tinha animais antes, informe quantos para os números ficarem certos.</p><button class="btn" data-acao="editar-saldo">Informar os animais que eu já tinha</button></div>');
+    } else if (ind.cortado) {
+      partes.push(`<p class="dica">Contando de ${formatarData(ind.inicio)} a ${formatarData(ind.fim)}: antes da contagem inicial ou depois de hoje não há dados.</p>`);
+    }
+    const especies = Object.entries(ind.porEspecie);
+    partes.push(especies.length ? especies.map(([especie, e]) => cartaoEspecie(especie, e)).join('') : '<p class="vazio">Nenhum animal anotado neste período.</p>');
     partes.push(`
-      <div class="cartao"><h2>Animais por tipo (saldo final)</h2>${linhas || '<p>Nenhum animal registrado.</p>'}
-        <p class="formula">Saldo final = início + nascimentos + compras − mortes − vendas</p></div>
-      <div class="cartao"><h2>Média de animais no período</h2><div class="numero">${formatarNumero(ind.media.media, 1)}</div>
-        <p class="formula">Calculado por: ${metodo}</p></div>
-      <div class="cartao"><h2>Taxa de mortalidade</h2><div class="numero">${mostrar(ind.mortalidade, (v) => `${formatarNumero(v, 1)}%`)}</div>
-        <p>${ind.mortes} ${ind.mortes === 1 ? 'morte' : 'mortes'} no período. Quer dizer: de cada 100 animais, quantos morreram.</p>
-        <p class="formula">Mortalidade = mortes ÷ média de animais × 100</p></div>
-      <div class="cartao"><h2>Custo por cabeça</h2><div class="numero">${mostrar(ind.custoPorCabeca, formatarReais)}</div>
-        <p>Custos lançados: ${formatarReais(ind.custoTotal)}${ind.custoPorCabeca === SEM_DADOS ? '. Lance gastos com ração, vacina etc. em “Registro rápido → Gasto”.' : ''}</p>
-        <p class="formula">Custo por cabeça = custos ÷ média de animais</p></div>
-      <div class="cartao"><h2>Dinheiro</h2>
-        <p>Vendas: <strong>${formatarReais(ind.vendas)}</strong><br>Compras: <strong>${formatarReais(ind.compras)}</strong></p></div>
-      <button class="btn principal" data-acao="copiar-resumo">Copiar resumo</button>`);
+      <div class="cartao"><h2>Gastos e dinheiro (todo o rebanho)</h2>
+        <p>Vendas: <strong>${formatarReais(ind.vendas)}</strong> · Compras: <strong>${formatarReais(ind.compras)}</strong> · Gastos: <strong>${formatarReais(ind.custoTotal)}</strong></p>
+        <p>Custo por cabeça: <strong>${mostrar(ind.custoPorCabeca, formatarReais)}</strong>${ind.custoPorCabeca === SEM_DADOS ? '. Lance gastos com ração, vacina etc. no botão Gasto.' : ''}</p>
+        <p class="formula">Mortalidade = mortes ÷ média de animais × 100 · Custo por cabeça = gastos ÷ média de animais</p></div>
+      <a class="btn principal" id="enviar-whatsapp" href="https://wa.me/?text=${encodeURIComponent(resumoTexto(ind, tituloPeriodo()))}" target="_blank" rel="noopener">Enviar relatório pelo WhatsApp</a>
+      <button class="btn" data-acao="copiar-resumo">Copiar relatório</button>`);
   }
   partes.push(`
-    <button class="btn" data-acao="editar-saldo">Corrigir contagem inicial</button>
+    <button class="btn" data-acao="editar-saldo">${temContagemInicial(estado.saldoBase) ? 'Corrigir' : 'Informar'} os animais que eu já tinha</button>
     <button class="btn" data-acao="exportar">Exportar dados</button>
     <button class="btn" data-acao="importar">Restaurar uma cópia</button>`);
   $('#painel').innerHTML = partes.join('');
@@ -473,7 +695,7 @@ async function copiarResumo() {
     document.execCommand('copy');
     area.remove();
   }
-  avisar('Resumo copiado. Cole no WhatsApp ou onde quiser.');
+  avisar('Relatório copiado. Cole no WhatsApp ou onde quiser.');
 }
 
 // ---------- Cópia de segurança ----------
@@ -481,10 +703,11 @@ async function copiarResumo() {
 function exportar() {
   const conteudo = JSON.stringify({
     app: 'diario-rebanho',
-    versao: 1,
+    versao: 2,
     exportadoEm: new Date().toISOString(),
     saldoBase: estado.saldoBase,
     registros: estado.registros,
+    animais: estado.animais,
   }, null, 2);
   const url = URL.createObjectURL(new Blob([conteudo], { type: 'application/json' }));
   const link = document.createElement('a');
@@ -510,17 +733,22 @@ async function importar(arquivo) {
     return;
   }
   const validos = dados.registros
-    .map((r) => validarRegistro(r, hoje()))
+    .map((r) => validarRegistro({ ...r, categoria: r.categoria ? migrarCategoria(r.categoria) : r.categoria }, hoje()))
     .filter((r) => r.ok && r.registro.id)
     .map((r) => r.registro);
+  const animais = (Array.isArray(dados.animais) ? dados.animais : [])
+    .map((a) => validarAnimal(a, hoje()))
+    .filter((r) => r.ok && r.animal.id)
+    .map((r) => r.animal);
   const ignorados = dados.registros.length - validos.length;
-  const pergunta = `Trocar os dados deste aparelho pelos ${validos.length} lançamentos da cópia?${ignorados ? ` (${ignorados} com problema serão ignorados)` : ''}`;
+  const pergunta = `Trocar os dados deste aparelho pelos ${validos.length} lançamentos e ${animais.length} animais da cópia?${ignorados ? ` (${ignorados} lançamentos com problema serão ignorados)` : ''}`;
   if (!(await confirmar(pergunta, 'Sim, restaurar'))) return;
   estado.registros = validos;
+  estado.animais = animais;
   estado.saldoBase = dados.saldoBase?.data ? dados.saldoBase : estado.saldoBase;
   salvar();
   avisar('Cópia restaurada.');
-  renderIndicadores();
+  renderRelatorio();
 }
 
 // ---------- Eventos ----------
@@ -532,15 +760,20 @@ document.addEventListener('click', (evento) => {
 
   if (ir) {
     if (ir === 'rapido') rascunho = null;
+    if (ir === 'novo-animal') novoAnimal = null;
+    if (ir === 'relatorio') editandoSaldo = false;
     irPara(ir);
   } else if (atalho) {
     novoRascunho({ tipo: atalho });
     irPara('rapido');
-  } else if (campo && ['tipo', 'categoria', 'quantidade'].includes(campo)) {
+  } else if (campo && ['tipo', 'categoria', 'quantidade', 'animal'].includes(campo)) {
     escolherNoRapido(campo, valor);
   } else if (campo === 'voz-tipo' || campo === 'voz-categoria') {
     entendido[campo.slice(4)] = valor;
     renderEntendido();
+  } else if (campo === 'animal-categoria' || campo === 'animal-entrada') {
+    novoAnimal[campo.slice(7)] = valor;
+    atualizarNovoAnimal();
   } else if (campo === 'periodo-modo') {
     periodo.modo = valor;
     renderPainel();
@@ -571,12 +804,17 @@ document.addEventListener('click', (evento) => {
       break;
     case 'editar': editar(id); break;
     case 'apagar': apagar(id); break;
-    case 'editar-saldo': editandoSaldo = true; renderIndicadores(); break;
+    case 'contar': editandoSaldo = true; irPara('relatorio'); break;
+    case 'editar-saldo': editandoSaldo = true; renderRelatorio(); window.scrollTo(0, 0); break;
+    case 'cancelar-saldo': editandoSaldo = false; renderRelatorio(); break;
     case 'periodo-anterior': mudarPeriodo(-1); break;
     case 'periodo-seguinte': mudarPeriodo(1); break;
     case 'copiar-resumo': copiarResumo(); break;
     case 'exportar': exportar(); break;
     case 'importar': $('#arquivo-importar').click(); break;
+    case 'abrir-animal': animalAberto = id; irPara('animal'); break;
+    case 'animal-registrar': registrarParaAnimal(valor); break;
+    case 'apagar-animal': apagarAnimal(); break;
     default: break;
   }
 });
@@ -592,7 +830,14 @@ document.addEventListener('input', (evento) => {
     if (campo.id === 'valor') rascunho.valorTexto = campo.value;
     if (campo.id === 'descricao') rascunho.descricao = campo.value;
     if (campo.id === 'peso') rascunho.pesoTexto = campo.value;
+    if (campo.id === 'nome-novo') rascunho.nomeNovo = campo.value;
     if (campo.id === 'data') rascunho.data = campo.value;
+  }
+  if (novoAnimal) {
+    if (campo.id === 'animal-nome') novoAnimal.identificacao = campo.value;
+    if (campo.id === 'animal-valor') novoAnimal.valorTexto = campo.value;
+    if (campo.id === 'animal-data') novoAnimal.data = campo.value;
+    if (campo.id === 'animal-obs') novoAnimal.observacao = campo.value;
   }
   if (entendido) {
     if (campo.id === 'voz-quantidade') entendido.quantidade = campo.value === '' ? null : Number(campo.value);
@@ -605,6 +850,7 @@ document.addEventListener('input', (evento) => {
 
 $('#form-rapido').addEventListener('submit', salvarRapido);
 $('#form-saldo').addEventListener('submit', salvarSaldo);
+$('#form-animal').addEventListener('submit', salvarNovoAnimal);
 $('#frase').addEventListener('keydown', (evento) => {
   if (evento.key === 'Enter' && !evento.shiftKey) {
     evento.preventDefault();

@@ -17,26 +17,35 @@ self.addEventListener('activate', (evento) => {
   );
 });
 
-// Responde na hora com a cópia guardada e, se houver internet, atualiza a cópia por trás.
-// Assim o app abre no curral sem sinal e pega as melhorias quando o celular conectar.
+// Com internet, busca a versão nova (e guarda a cópia). Sem resposta em 3 segundos, ou sem
+// sinal, usa a cópia guardada: o app abre no curral e mostra as melhorias assim que houver rede.
+const ESPERA_REDE_MS = 3000;
+
 self.addEventListener('fetch', (evento) => {
   const { request } = evento;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   evento.respondWith(caches.open(VERSAO_CACHE).then(async (cache) => {
-    const guardada = await cache.match(request, { ignoreSearch: true });
     const daRede = fetch(request).then((resposta) => {
       if (resposta.ok) cache.put(request, resposta.clone());
       return resposta;
     });
-    if (guardada) {
-      evento.waitUntil(daRede.catch(() => {}));
-      return guardada;
+    const guardada = await cache.match(request, { ignoreSearch: true });
+    if (!guardada) {
+      try {
+        return await daRede;
+      } catch {
+        if (request.mode === 'navigate') return (await cache.match('./')) ?? Response.error();
+        return Response.error();
+      }
     }
+    const tempoEsgotado = new Promise((responder) => setTimeout(() => responder(null), ESPERA_REDE_MS));
     try {
-      return await daRede;
+      const resposta = await Promise.race([daRede, tempoEsgotado]);
+      if (resposta?.ok) return resposta;
     } catch {
-      if (request.mode === 'navigate') return (await cache.match('./')) ?? Response.error();
-      return Response.error();
+      // Sem rede: segue para a cópia guardada.
     }
+    evento.waitUntil(daRede.catch(() => {}));
+    return guardada;
   }));
 });

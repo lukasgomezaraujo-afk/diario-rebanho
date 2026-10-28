@@ -35,6 +35,9 @@
     li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border: 1px solid #999; border-radius: 8px; }
     li small { color: #555; display: block; }
     .vazio { color: #555; border: 0; padding: 0; }
+    h3 { font-size: .9rem; margin: 10px 0 6px; color: #374151; }
+    .rebanho { padding: 12px; border: 2px solid #111; border-radius: 8px; margin-bottom: 8px; }
+    .linha-rebanho { display: flex; justify-content: space-between; font-size: 1.1rem; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -42,10 +45,12 @@
     <p class="faixa">Versão 1 · o mínimo que funciona · sem voz e sem indicadores</p>
     <h1>Diário do Rebanho</h1>
 
+    <div class="rebanho" id="rebanho" aria-live="polite"></div>
+
     <h2>O que aconteceu?</h2>
     <div class="opcoes" id="tipos"></div>
     <h2>Qual animal?</h2>
-    <div class="opcoes" id="animais"></div>
+    <div id="animais"></div>
     <h2>Quantos?</h2>
     <div class="opcoes numeros" id="quantidades"></div>
     <button class="salvar" id="salvar">Salvar</button>
@@ -57,7 +62,8 @@
 
   <script type="module">
     import { validarRegistro, ordenarRegistros } from '../../src/registros.js';
-    import { CATEGORIAS, descrever, nomeCategoria } from '../../src/rotulos.js';
+    import { CATEGORIAS_POR_ESPECIE, ESPECIES, NOMES_ESPECIE, descrever, nomeCategoria } from '../../src/rotulos.js';
+    import { resumoPorEspecie, saldoAtual } from '../../src/indicadores.js';
     import { formatarData, isoDeData } from '../../src/formato.js';
 
     // Dados guardados separados da versão completa, para uma não bagunçar a outra.
@@ -68,6 +74,9 @@
 
     let registros = [];
     try { registros = JSON.parse(localStorage.getItem(CHAVE)) ?? []; } catch { registros = []; }
+    // Categorias de antes da separação por espécie.
+    const ANTIGAS = { matriz: 'cabra', reprodutor: 'bode' };
+    registros = registros.map((r) => ({ ...r, categoria: ANTIGAS[r.categoria] ?? r.categoria }));
     const escolha = { tipo: null, categoria: null, quantidade: null };
     let apagando = null;
 
@@ -86,7 +95,13 @@
 
     function desenhar() {
       $('#tipos').innerHTML = botoes('tipo', Object.entries(TIPOS));
-      $('#animais').innerHTML = botoes('categoria', CATEGORIAS.map((c) => [c, capital(nomeCategoria(c, 1))]));
+      $('#animais').innerHTML = ESPECIES.map((especie) => `<h3>${NOMES_ESPECIE[especie]}</h3>
+        <div class="opcoes">${botoes('categoria', CATEGORIAS_POR_ESPECIE[especie].map((c) => [c, capital(nomeCategoria(c, 1))]))}</div>`).join('');
+      // Contagem pelo que foi anotado: começa do zero e soma nascimentos e compras, tira mortes e vendas.
+      const resumo = Object.entries(resumoPorEspecie(saldoAtual(null, registros, isoDeData(new Date()))));
+      $('#rebanho').innerHTML = resumo.length === 0
+        ? '<strong>Seu rebanho:</strong> nada anotado ainda.'
+        : `<strong>Seu rebanho:</strong>${resumo.map(([especie, e]) => `<div class="linha-rebanho"><span>${NOMES_ESPECIE[especie]}</span><strong>${e.total}</strong></div>`).join('')}`;
       $('#quantidades').innerHTML = botoes('quantidade', [1, 2, 3, 4, 5, 6].map((n) => [n, n]));
       const lista = ordenarRegistros(registros);
       $('#lista').innerHTML = lista.length === 0

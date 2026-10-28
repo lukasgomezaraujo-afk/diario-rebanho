@@ -60,7 +60,7 @@ mexe nos registros da outra.
 npm test
 ```
 
-Resultado nesta versão: **70 testes, 70 passando, 0 falhas** (Node 22.23.4).
+Resultado nesta versão: **94 testes, 94 passando, 0 falhas** (Node 22.23.4).
 
 | Arquivo | O que cobre |
 | --- | --- |
@@ -69,6 +69,7 @@ Resultado nesta versão: **70 testes, 70 passando, 0 falhas** (Node 22.23.4).
 | `test/registros.test.js` | quantidade zero, valor negativo, data futura e inexistente, pesagem sem peso, custo |
 | `test/formato.test.js` | R$ 1.234,56, leitura de valores digitados, datas dd/mm/aaaa |
 | `test/servidor.test.js` | entrega das páginas e das versões, bloqueio de acesso fora das pastas |
+| `test/animais.test.js` | cadastro, nome repetido, situação (no rebanho, vendido, morreu), histórico e último peso |
 | `test/offline.test.js` | nenhum arquivo fora da lista offline, manifesto válido, nenhum caminho absoluto |
 
 ## Estrutura
@@ -78,7 +79,8 @@ server.js            servidor estático (módulo http do Node)
 src/                 regras de negócio, sem DOM (também servidas ao navegador)
   interpretador.js   texto → { tipo, categoria, quantidade, valor, pesoKg, confianca }
   registros.js       validação dos lançamentos
-  indicadores.js     saldo, média de animais, mortalidade, custo por cabeça
+  indicadores.js     rebanho de hoje, relatório por espécie, mortalidade, custo por cabeça
+  animais.js         acompanhamento por animal: cadastro, situação, histórico
   rotulos.js         nomes, explicações dos termos, frase de cada lançamento
   formato.js         reais, números e datas no padrão brasileiro
 public/              interface (HTML, CSS, app.js, voz.js)
@@ -106,7 +108,7 @@ interpretador, ou usa o registro rápido.
   de confirmar e de corrigir.
 - **Datas faladas não são entendidas**: a data padrão é hoje e se corrige no registro rápido.
 - **Sem contas ou nuvem**: tudo fica no aparelho. A cópia de segurança é um arquivo exportado.
-- **Indicadores por rebanho inteiro**: mortalidade e custo não são separados por categoria.
+- **Gastos para o rebanho inteiro**: a mortalidade sai por espécie, mas o custo por cabeça ainda junta cabras, ovelhas e vacas.
 
 ## Expressões regionais ainda não cobertas
 

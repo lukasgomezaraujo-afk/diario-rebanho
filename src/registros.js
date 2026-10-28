@@ -24,6 +24,8 @@ export function validarRegistro(dados, hojeIso) {
     descricao: tipo === 'custo' ? String(dados.descricao ?? '').trim().slice(0, 80) : '',
     data: dados.data,
     criadoEm: dados.criadoEm ?? null,
+    // Animal identificado (acompanhamento por animal), quando o lançamento é de um só.
+    animalId: comAnimal && dados.animalId ? String(dados.animalId).slice(0, 64) : null,
   };
 
   if (!TIPOS_REGISTRO.includes(tipo)) {
@@ -32,6 +34,8 @@ export function validarRegistro(dados, hojeIso) {
     if (!CATEGORIAS.includes(registro.categoria)) erros.push('Escolha o animal.');
     if (!Number.isInteger(registro.quantidade) || registro.quantidade <= 0) {
       erros.push('A quantidade precisa ser um número inteiro maior que zero.');
+    } else if (registro.animalId && registro.quantidade !== 1) {
+      erros.push('Um animal identificado conta como 1. Para vários, não escolha o animal.');
     }
   }
 

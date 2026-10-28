@@ -1,8 +1,16 @@
 // Indicadores do rebanho. Funções puras: recebem dados, devolvem números.
 import { adicionarDias, formatarData, formatarNumero, formatarReais } from './formato.js';
-import { nomeCategoria } from './rotulos.js';
+import { CATEGORIAS_POR_ESPECIE, ESPECIES, ESPECIE_DA_CATEGORIA, NOMES_ESPECIE, nomeCategoria } from './rotulos.js';
 
 export const SEM_DADOS = 'sem dados';
+
+// Sem contagem inicial, o rebanho começa do zero e é contado só pelos lançamentos.
+export const BASE_VAZIA = { data: '0000-01-01', porCategoria: {} };
+
+// A base sem data real só junta animais cadastrados como "já estava"; não é uma contagem feita.
+export function temContagemInicial(saldoBase) {
+  return Boolean(saldoBase) && saldoBase.data !== BASE_VAZIA.data;
+}
 
 const SINAL = { nascimento: 1, compra: 1, morte: -1, venda: -1 };
 const CAMPO = { nascimento: 'nascimentos', compra: 'compras', morte: 'mortes', venda: 'vendas' };
@@ -12,6 +20,7 @@ export function efeitoNoSaldo(registro) {
 }
 
 const somar = (numeros) => numeros.reduce((total, n) => total + n, 0);
+const daEspecie = (especie) => (r) => ESPECIE_DA_CATEGORIA[r.categoria] === especie;
 
 // final = inicial + nascimentos + compras − mortes − vendas, por categoria.
 export function saldoPorCategoria(saldoInicial, registros) {
@@ -36,9 +45,28 @@ export function saldoPorCategoria(saldoInicial, registros) {
 // Contagem no começo do dia `dataIso`, a partir da contagem base (começo do dia `saldoBase.data`).
 // Lançamentos anteriores à data base já estão dentro da contagem base.
 export function saldoNaData(saldoBase, registros, dataIso) {
-  const entre = registros.filter((r) => r.data >= saldoBase.data && r.data < dataIso);
-  const tabela = saldoPorCategoria(saldoBase.porCategoria, entre);
+  const base = saldoBase ?? BASE_VAZIA;
+  const entre = registros.filter((r) => r.data >= base.data && r.data < dataIso);
+  const tabela = saldoPorCategoria(base.porCategoria, entre);
   return Object.fromEntries(Object.entries(tabela).map(([categoria, l]) => [categoria, l.final]));
+}
+
+// Quantos animais existem hoje, contando os lançamentos de hoje.
+export function saldoAtual(saldoBase, registros, hoje) {
+  return saldoNaData(saldoBase, registros, adicionarDias(hoje, 1));
+}
+
+// Agrupa a contagem por espécie: { caprino: { total, categorias: { cabra: 7, … } }, … }.
+// Só entram espécies com algum animal ou lançamento.
+export function resumoPorEspecie(porCategoria) {
+  const resumo = {};
+  for (const especie of ESPECIES) {
+    const presentes = CATEGORIAS_POR_ESPECIE[especie].filter((c) => c in porCategoria);
+    if (presentes.length === 0) continue;
+    const categorias = Object.fromEntries(CATEGORIAS_POR_ESPECIE[especie].map((c) => [c, porCategoria[c] ?? 0]));
+    resumo[especie] = { total: somar(Object.values(categorias)), categorias };
+  }
+  return resumo;
 }
 
 // Média de animais no período. Com lançamentos que mudam o rebanho, usa a média dos saldos
@@ -82,34 +110,61 @@ export function periodoAnual(ano) {
   return { inicio: `${ano}-01-01`, fim: `${ano}-12-31` };
 }
 
-// Junta tudo para a tela de indicadores. O período é cortado para começar na data do saldo
-// inicial e terminar hoje, porque antes e depois disso não há contagem conhecida.
+const valores = (registros, tipo) => somar(registros.filter((r) => r.tipo === tipo && r.valor !== null).map((r) => r.valor));
+const quantidades = (registros, tipo) => somar(registros.filter((r) => r.tipo === tipo).map((r) => r.quantidade));
+
+// Junta tudo para o relatório. O período é cortado para começar na data da contagem inicial
+// (quando houver) e terminar hoje, porque antes e depois disso não há contagem conhecida.
 export function calcularIndicadores({ saldoBase, registros, inicio, fim, hoje }) {
-  if (!saldoBase) return { erro: 'Informe quantos animais você tem para calcular os indicadores.' };
-  const ini = inicio < saldoBase.data ? saldoBase.data : inicio;
+  const base = saldoBase ?? BASE_VAZIA;
+  const ini = inicio < base.data ? base.data : inicio;
   const fimReal = fim > hoje ? hoje : fim;
   if (ini > fimReal) return { erro: 'Não há dados para este período.' };
 
-  const inicialPorCategoria = saldoNaData(saldoBase, registros, ini);
+  const inicialPorCategoria = saldoNaData(base, registros, ini);
   const doPeriodo = registros.filter((r) => r.data >= ini && r.data <= fimReal);
   const tabela = saldoPorCategoria(inicialPorCategoria, doPeriodo);
   const media = mediaDeAnimais(somar(Object.values(inicialPorCategoria)), doPeriodo, ini, fimReal);
-  const mortes = somar(doPeriodo.filter((r) => r.tipo === 'morte').map((r) => r.quantidade));
+  const mortes = quantidades(doPeriodo, 'morte');
   const custos = doPeriodo.filter((r) => r.tipo === 'custo').map((r) => r.valor);
-  const valores = (tipo) => somar(doPeriodo.filter((r) => r.tipo === tipo && r.valor !== null).map((r) => r.valor));
+
+  const porEspecie = {};
+  for (const especie of ESPECIES) {
+    const categorias = CATEGORIAS_POR_ESPECIE[especie].filter((c) => c in tabela);
+    if (categorias.length === 0) continue;
+    const linhas = categorias.map((c) => tabela[c]);
+    const total = (campo) => somar(linhas.map((l) => l[campo]));
+    const registrosDaEspecie = doPeriodo.filter(daEspecie(especie));
+    const mediaEspecie = mediaDeAnimais(total('inicial'), registrosDaEspecie, ini, fimReal);
+    porEspecie[especie] = {
+      tabela: Object.fromEntries(categorias.map((c) => [c, tabela[c]])),
+      inicial: total('inicial'),
+      final: total('final'),
+      nascimentos: total('nascimentos'),
+      compras: total('compras'),
+      mortes: total('mortes'),
+      vendas: total('vendas'),
+      media: mediaEspecie,
+      mortalidade: taxaMortalidade(total('mortes'), mediaEspecie.media),
+      receitaVendas: valores(registrosDaEspecie, 'venda'),
+      gastoCompras: valores(registrosDaEspecie, 'compra'),
+    };
+  }
 
   return {
     inicio: ini,
     fim: fimReal,
     cortado: ini !== inicio || fimReal !== fim,
+    semContagemInicial: !temContagemInicial(saldoBase),
     tabela,
+    porEspecie,
     media,
     mortes,
     mortalidade: taxaMortalidade(mortes, media.media),
     custoTotal: somar(custos),
     custoPorCabeca: custoPorCabeca(custos, media.media),
-    vendas: valores('venda'),
-    compras: valores('compra'),
+    vendas: valores(doPeriodo, 'venda'),
+    compras: valores(doPeriodo, 'compra'),
   };
 }
 
@@ -119,16 +174,17 @@ const reais = (valor) => (valor === SEM_DADOS ? SEM_DADOS : formatarReais(valor)
 // Texto simples para copiar e mandar no WhatsApp.
 export function resumoTexto(indicadores, titulo) {
   const ind = indicadores;
-  const linhas = [`Diário do Rebanho: ${titulo}`, `Período: ${formatarData(ind.inicio)} a ${formatarData(ind.fim)}`, ''];
-  for (const [categoria, l] of Object.entries(ind.tabela)) {
-    linhas.push(`${nomeCategoria(categoria, 2)}: ${l.inicial} → ${l.final} (nasc. ${l.nascimentos}, compras ${l.compras}, mortes ${l.mortes}, vendas ${l.vendas})`);
+  const linhas = [`Diário do Rebanho: ${titulo}`, `Período: ${formatarData(ind.inicio)} a ${formatarData(ind.fim)}`];
+  for (const [especie, e] of Object.entries(ind.porEspecie)) {
+    linhas.push('', `${NOMES_ESPECIE[especie]}: ${e.inicial} → ${e.final} ${e.final === 1 ? 'animal' : 'animais'}`);
+    linhas.push(`Nasceram ${e.nascimentos} · Morreram ${e.mortes} · Compras ${e.compras} · Vendas ${e.vendas}`);
+    linhas.push(`Mortalidade: ${porcentagem(e.mortalidade)}`);
+    for (const [categoria, l] of Object.entries(e.tabela)) linhas.push(`  ${nomeCategoria(categoria, 2)}: ${l.final}`);
   }
   linhas.push(
     '',
-    `Média de animais: ${formatarNumero(ind.media.media, 1)}`,
-    `Mortalidade: ${porcentagem(ind.mortalidade)} (${ind.mortes} mortes)`,
+    `Vendas: ${formatarReais(ind.vendas)} | Compras: ${formatarReais(ind.compras)} | Gastos: ${formatarReais(ind.custoTotal)}`,
     `Custo por cabeça: ${reais(ind.custoPorCabeca)}`,
-    `Vendas: ${formatarReais(ind.vendas)} | Compras: ${formatarReais(ind.compras)} | Custos: ${formatarReais(ind.custoTotal)}`,
   );
   return linhas.join('\n');
 }

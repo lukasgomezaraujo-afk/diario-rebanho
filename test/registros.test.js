@@ -38,7 +38,18 @@ test('data inexistente é rejeitada', () => {
 });
 
 test('animal desconhecido é rejeitado', () => {
-  assert.equal(validarRegistro({ ...base, categoria: 'vaca' }, HOJE).ok, false);
+  assert.equal(validarRegistro({ ...base, categoria: 'jumento' }, HOJE).ok, false);
+  assert.equal(validarRegistro({ ...base, categoria: 'matriz' }, HOJE).ok, false);
+});
+
+test('vacas, bois e bezerros são aceitos', () => {
+  for (const categoria of ['vaca', 'boi', 'bezerro', 'bezerra']) assert.equal(validarRegistro({ ...base, categoria }, HOJE).ok, true, categoria);
+});
+
+test('animal identificado só vale com quantidade 1', () => {
+  assert.equal(validarRegistro({ ...base, quantidade: 1, animalId: 'a1' }, HOJE).registro.animalId, 'a1');
+  assert.equal(validarRegistro({ ...base, quantidade: 2, animalId: 'a1' }, HOJE).ok, false);
+  assert.equal(validarRegistro({ tipo: 'custo', valor: 10, data: HOJE, animalId: 'a1' }, HOJE).registro.animalId, null);
 });
 
 test('pesagem exige peso', () => {

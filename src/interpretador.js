@@ -1,6 +1,6 @@
 // Interpreta frases sobre o rebanho ("vendi três cabritos por setecentos reais").
 // Função pura: texto entra, objeto sai. Sem DOM e sem localStorage.
-import { CATEGORIAS, TIPOS } from './rotulos.js';
+import { CATEGORIAS, ESPECIE_DA_CATEGORIA, TIPOS } from './rotulos.js';
 import { formatarReais } from './formato.js';
 
 export { CATEGORIAS, TIPOS };
@@ -22,16 +22,26 @@ const CATEGORIA_POR_PALAVRA = new Map([
   ['cabrita', 'cabrita'], ['cabritas', 'cabrita'], ['cabritinha', 'cabrita'], ['cabritinhas', 'cabrita'],
   ['ovelha', 'ovelha'], ['ovelhas', 'ovelha'],
   ['carneiro', 'carneiro'], ['carneiros', 'carneiro'],
-  ['borrego', 'borrego'], ['borregos', 'borrego'], ['borrega', 'borrego'], ['borregas', 'borrego'],
-  ['cordeiro', 'borrego'], ['cordeiros', 'borrego'], ['cordeira', 'borrego'], ['cordeiras', 'borrego'],
-  ['matriz', 'matriz'], ['matrizes', 'matriz'],
-  ['reprodutor', 'reprodutor'], ['reprodutores', 'reprodutor'],
+  ['borrego', 'borrego'], ['borregos', 'borrego'], ['cordeiro', 'borrego'], ['cordeiros', 'borrego'],
+  ['borrega', 'borrega'], ['borregas', 'borrega'], ['cordeira', 'borrega'], ['cordeiras', 'borrega'],
+  ['vaca', 'vaca'], ['vacas', 'vaca'],
+  ['boi', 'boi'], ['bois', 'boi'], ['touro', 'boi'], ['touros', 'boi'],
+  ['bezerro', 'bezerro'], ['bezerros', 'bezerro'], ['bezerrinho', 'bezerro'], ['bezerrinhos', 'bezerro'],
+  ['bezerra', 'bezerra'], ['bezerras', 'bezerra'], ['bezerrinha', 'bezerra'], ['bezerrinhas', 'bezerra'],
 ]);
 const FORMAS_PLURAIS = new Set([...CATEGORIA_POR_PALAVRA.keys()].filter((p) => p.endsWith('s')));
-const FILHOTES = new Set(['cabrito', 'cabrita', 'borrego']);
-const MAES = new Set(['cabra', 'ovelha', 'matriz']);
-// "matriz de cabra" é matriz: a função do animal vale mais que a espécie.
-const PRIORITARIAS = new Set(['matriz', 'reprodutor']);
+const FILHOTES = new Set(['cabrito', 'cabrita', 'borrego', 'borrega', 'bezerro', 'bezerra']);
+const MAES = new Set(['cabra', 'ovelha', 'vaca']);
+// "Matriz" e "reprodutor" dizem a função do animal, não a espécie: "matriz de cabra" é cabra.
+const QUALIFICADORES = new Map([
+  ['matriz', 'femea'], ['matrizes', 'femea'], ['reprodutor', 'macho'], ['reprodutores', 'macho'],
+]);
+const ADULTOS = {
+  caprino: { femea: 'cabra', macho: 'bode' },
+  ovino: { femea: 'ovelha', macho: 'carneiro' },
+  bovino: { femea: 'vaca', macho: 'boi' },
+};
+const FILHOTES_DA_ESPECIE = { caprino: 'cabritos ou cabritas', ovino: 'borregos ou borregas', bovino: 'bezerros ou bezerras' };
 
 const TIPO_POR_PALAVRA = new Map();
 for (const [tipo, palavras] of Object.entries({
@@ -136,19 +146,25 @@ function extrairNumeros(tokens) {
 // Próxima palavra, pulando o "de" de "dúzia de cabritos".
 const palavraApos = (tokens, indice) => (tokens[indice] === 'de' ? tokens[indice + 1] : tokens[indice]);
 
-function escolherCategoria(mencoes, tipo, falaDeParto) {
-  if (mencoes.length === 0) return null;
-  let candidatas = mencoes;
+// Retorna a menção escolhida, 'conflito', { mae: espécie } ou { semEspecie: true }.
+function escolherCategoria(mencoes, tipo, falaDeParto, qualificador) {
   if (tipo === 'nascimento' && mencoes.some((m) => FILHOTES.has(m.categoria))) {
-    candidatas = mencoes.filter((m) => FILHOTES.has(m.categoria));
-  } else if (tipo === 'nascimento' && falaDeParto && mencoes.every((m) => MAES.has(m.categoria))) {
-    // "a cabra pariu dois": a cabra é a mãe, não quem nasceu.
-    return 'mae';
-  } else if (mencoes.some((m) => PRIORITARIAS.has(m.categoria))) {
-    candidatas = mencoes.filter((m) => PRIORITARIAS.has(m.categoria));
+    const filhotes = mencoes.filter((m) => FILHOTES.has(m.categoria));
+    return new Set(filhotes.map((m) => m.categoria)).size === 1 ? filhotes[0] : 'conflito';
   }
-  const distintas = new Set(candidatas.map((m) => m.categoria));
-  return distintas.size === 1 ? candidatas[0] : 'conflito';
+  const especies = new Set(mencoes.map((m) => ESPECIE_DA_CATEGORIA[m.categoria]));
+  if (tipo === 'nascimento' && falaDeParto && (qualificador || mencoes.length > 0) && mencoes.every((m) => MAES.has(m.categoria))) {
+    // "a cabra pariu dois": a cabra é a mãe, não quem nasceu.
+    if (especies.size === 0) return { semEspecie: true };
+    return especies.size === 1 ? { mae: [...especies][0] } : 'conflito';
+  }
+  if (qualificador) {
+    if (especies.size === 0) return { semEspecie: true };
+    if (especies.size > 1) return 'conflito';
+    return { categoria: ADULTOS[[...especies][0]][qualificador.sexo], indice: qualificador.indice, plural: qualificador.plural };
+  }
+  if (mencoes.length === 0) return null;
+  return new Set(mencoes.map((m) => m.categoria)).size === 1 ? mencoes[0] : 'conflito';
 }
 
 export function interpretar(texto) {
@@ -192,13 +208,21 @@ export function interpretar(texto) {
   tokens.forEach((t, i) => {
     if (CATEGORIA_POR_PALAVRA.has(t)) mencoes.push({ categoria: CATEGORIA_POR_PALAVRA.get(t), indice: i, plural: FORMAS_PLURAIS.has(t) });
   });
+  const iQualificador = tokens.findIndex((t) => QUALIFICADORES.has(t));
+  const qualificador = iQualificador < 0 ? null : {
+    sexo: QUALIFICADORES.get(tokens[iQualificador]),
+    indice: iQualificador,
+    plural: tokens[iQualificador].endsWith('s'),
+  };
   const falaDeParto = tokens.some((t) => PALAVRAS_PARTO.has(t));
-  const escolhida = escolherCategoria(mencoes, tipo, falaDeParto);
+  const escolhida = escolherCategoria(mencoes, tipo, falaDeParto, qualificador);
   if (escolhida === 'conflito') {
     incerto = true;
     avisos.push('A frase fala de mais de um tipo de animal. Registre um de cada vez.');
-  } else if (escolhida === 'mae') {
-    avisos.push('Os filhotes são cabritos, cabritas ou borregos?');
+  } else if (escolhida?.mae) {
+    avisos.push(`Os filhotes são ${FILHOTES_DA_ESPECIE[escolhida.mae]}?`);
+  } else if (escolhida?.semEspecie) {
+    avisos.push('De qual animal: cabra, ovelha ou vaca?');
   } else if (escolhida) {
     resultado.categoria = escolhida.categoria;
   }
@@ -246,7 +270,7 @@ export function interpretar(texto) {
       if (peso === null) { peso = numero.valor; pesoCerto = true; }
     } else if (TEMPO.has(depois) || antes === 'dia') {
       avisos.push('Idade e datas faladas não entram no registro. A data fica como hoje; corrija se precisar.');
-    } else if (CATEGORIA_POR_PALAVRA.has(palavraApos(tokens, numero.fim + 1))) {
+    } else if (CATEGORIA_POR_PALAVRA.has(palavraApos(tokens, numero.fim + 1)) || QUALIFICADORES.has(palavraApos(tokens, numero.fim + 1))) {
       if (quantidade === null) { quantidade = numero.valor; quantidadeCerta = true; }
     } else if (ANTES_DE_VALOR.has(antes)) {
       if (valor === null) valor = numero.valor;
@@ -268,7 +292,7 @@ export function interpretar(texto) {
       quantidadeCerta = true;
     } else if (tokens.some((t) => VAGOS.has(t))) {
       avisos.push('Quantos animais? A frase não diz o número.');
-    } else if (escolhida && typeof escolhida === 'object' && !escolhida.plural) {
+    } else if (escolhida?.categoria && !escolhida.plural) {
       quantidade = 1;
       quantidadeCerta = tipo === 'pesagem' || ARTIGOS.has(tokens[escolhida.indice - 1]);
     }

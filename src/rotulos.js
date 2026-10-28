@@ -1,4 +1,4 @@
-// Nomes, categorias e frases que a interface e o interpretador compartilham.
+// Nomes, espécies, categorias e frases que a interface e o interpretador compartilham.
 import { formatarNumero, formatarReais } from './formato.js';
 
 export const TIPOS = ['nascimento', 'morte', 'compra', 'venda', 'pesagem'];
@@ -14,7 +14,27 @@ export const ROTULOS_TIPO = {
   custo: 'Custo',
 };
 
-export const CATEGORIAS = ['cabra', 'bode', 'cabrito', 'cabrita', 'ovelha', 'carneiro', 'borrego', 'matriz', 'reprodutor'];
+// Cada espécie tem quatro categorias: fêmea adulta, macho adulto, filhote macho, filhote fêmea.
+// O nome da categoria já diz a espécie, então os registros guardam só a categoria.
+export const ESPECIES = ['caprino', 'ovino', 'bovino'];
+
+export const NOMES_ESPECIE = {
+  caprino: 'Cabras e bodes',
+  ovino: 'Ovelhas e carneiros',
+  bovino: 'Vacas e bois',
+};
+
+export const CATEGORIAS_POR_ESPECIE = {
+  caprino: ['cabra', 'bode', 'cabrito', 'cabrita'],
+  ovino: ['ovelha', 'carneiro', 'borrego', 'borrega'],
+  bovino: ['vaca', 'boi', 'bezerro', 'bezerra'],
+};
+
+export const CATEGORIAS = ESPECIES.flatMap((especie) => CATEGORIAS_POR_ESPECIE[especie]);
+
+export const ESPECIE_DA_CATEGORIA = Object.fromEntries(
+  ESPECIES.flatMap((especie) => CATEGORIAS_POR_ESPECIE[especie].map((categoria) => [categoria, especie])),
+);
 
 const NOMES = {
   cabra: ['cabra', 'cabras'],
@@ -24,21 +44,27 @@ const NOMES = {
   ovelha: ['ovelha', 'ovelhas'],
   carneiro: ['carneiro', 'carneiros'],
   borrego: ['borrego', 'borregos'],
-  matriz: ['matriz', 'matrizes'],
-  reprodutor: ['reprodutor', 'reprodutores'],
+  borrega: ['borrega', 'borregas'],
+  vaca: ['vaca', 'vacas'],
+  boi: ['boi', 'bois'],
+  bezerro: ['bezerro', 'bezerros'],
+  bezerra: ['bezerra', 'bezerras'],
 };
 
 // Explicação curta para quem não conhece o termo técnico.
 export const EXPLICACOES = {
-  cabra: 'fêmea adulta (caprino)',
-  bode: 'macho adulto (caprino)',
-  cabrito: 'filhote macho de cabra',
-  cabrita: 'filhote fêmea de cabra',
-  ovelha: 'fêmea adulta (ovino)',
-  carneiro: 'macho adulto (ovino)',
-  borrego: 'filhote de ovelha (cordeiro)',
-  matriz: 'fêmea separada para dar cria',
-  reprodutor: 'macho usado para cobrir as fêmeas',
+  cabra: 'fêmea adulta',
+  bode: 'macho adulto',
+  cabrito: 'filhote macho',
+  cabrita: 'filhote fêmea',
+  ovelha: 'fêmea adulta',
+  carneiro: 'macho adulto',
+  borrego: 'filhote macho (cordeiro)',
+  borrega: 'filhote fêmea (cordeira)',
+  vaca: 'fêmea adulta',
+  boi: 'macho adulto (boi ou touro)',
+  bezerro: 'filhote macho',
+  bezerra: 'filhote fêmea',
 };
 
 export function nomeCategoria(categoria, quantidade) {

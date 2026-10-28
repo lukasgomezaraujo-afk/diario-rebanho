@@ -17,8 +17,14 @@ const CASOS = [
   ['vendi três cabritos por setecentos reais', 'venda', 'cabrito', 3, 700, null, 'alta', []],
   ['vendi 2 bodes por R$ 1.500', 'venda', 'bode', 2, 1500, null, 'alta', []],
   ['vendi uma cabra por um conto', 'venda', 'cabra', 1, 1000, null, 'alta', []],
-  ['vendi um reprodutor por um conto e meio', 'venda', 'reprodutor', 1, 1500, null, 'alta', []],
-  ['comprei duas matrizes de cabra por dois mil e quatrocentos reais', 'compra', 'matriz', 2, 2400, null, 'alta', []],
+  ['vendi um bode reprodutor por um conto e meio', 'venda', 'bode', 1, 1500, null, 'alta', []],
+  ['comprei duas matrizes de cabra por dois mil e quatrocentos reais', 'compra', 'cabra', 2, 2400, null, 'alta', []],
+  ['comprei um reprodutor de ovelha por 900 reais', 'compra', 'carneiro', 1, 900, null, 'alta', []],
+  ['nasceu um bezerro', 'nascimento', 'bezerro', 1, null, null, 'alta', []],
+  ['a vaca pariu uma bezerra', 'nascimento', 'bezerra', 1, null, null, 'alta', []],
+  ['vendi dois bois por quatro mil reais', 'venda', 'boi', 2, 4000, null, 'alta', []],
+  ['morreram duas borregas', 'morte', 'borrega', 2, null, null, 'alta', []],
+  ['comprei um touro', 'compra', 'boi', 1, null, null, 'media', ['valor']],
   ['compramos 5 cabras por 2 mil reais', 'compra', 'cabra', 5, 2000, null, 'alta', []],
   ['vendi três cabritos a 300 reais cada', 'venda', 'cabrito', 3, 900, null, 'alta', []],
   ['vendi um bode de 2 anos por 800 reais', 'venda', 'bode', 1, 800, null, 'alta', []],
@@ -36,6 +42,8 @@ const CASOS = [
   ['nasceram cabritos', 'nascimento', 'cabrito', null, null, null, 'baixa', ['quantidade']],
   ['nasceram dois', 'nascimento', 'desconhecida', 2, null, null, 'baixa', ['categoria']],
   ['a cabra pariu gêmeos', 'nascimento', 'desconhecida', 2, null, null, 'baixa', ['categoria']],
+  ['vendi um reprodutor por um conto', 'venda', 'desconhecida', 1, 1000, null, 'baixa', ['categoria']],
+  ['nasceu um cabrito e um bezerro', 'nascimento', 'desconhecida', 1, null, null, 'baixa', ['categoria']],
   ['nasceu um cabrito e uma cabrita', 'nascimento', 'desconhecida', 1, null, null, 'baixa', ['categoria']],
   ['comprei e vendi cabras', 'desconhecido', 'cabra', null, null, null, 'baixa', ['tipo', 'quantidade']],
   ['bom dia, tudo bem?', 'desconhecido', 'desconhecida', null, null, null, 'baixa', ['tipo', 'categoria', 'quantidade']],
@@ -55,6 +63,15 @@ for (const [frase, tipo, categoria, quantidade, valor, pesoKg, confianca, faltan
 test('tem pelo menos 25 frases e 5 de confiança baixa', () => {
   assert.ok(CASOS.length >= 25);
   assert.ok(CASOS.filter((c) => c[6] === 'baixa').length >= 5);
+});
+
+test('no parto sem filhote dito, pergunta os filhotes da espécie certa', () => {
+  assert.ok(interpretar('a ovelha pariu gêmeos').avisos.includes('Os filhotes são borregos ou borregas?'));
+  assert.ok(interpretar('a vaca pariu').avisos.includes('Os filhotes são bezerros ou bezerras?'));
+});
+
+test('reprodutor sem espécie pergunta de qual animal', () => {
+  assert.ok(interpretar('vendi um reprodutor').avisos.includes('De qual animal: cabra, ovelha ou vaca?'));
 });
 
 test('"quinhentos conto" explica o problema ao produtor', () => {

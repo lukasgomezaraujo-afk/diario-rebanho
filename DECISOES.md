@@ -61,9 +61,10 @@ Escolhas feitas durante a construção, sem consulta prévia. Cada uma pode ser 
 ## Uso no celular (Eixo 2, Desafio 6)
 - **App instalável e offline (PWA)** em vez de app de loja: não precisa de conta de desenvolvedor,
   não paga nada e atualiza sozinho quando houver sinal. Para o pequeno produtor, a barreira é menor.
-- **Cache que responde na hora e atualiza por trás.** O app abre mesmo sem sinal; quando o celular
-  conecta, a próxima abertura já vem com a versão nova. Não é preciso mudar `VERSAO_CACHE` a cada
-  alteração; mude só se quiser forçar a limpeza da cópia antiga.
+- **Rede primeiro, cópia guardada como reserva.** Com internet, o app busca a versão nova (até
+  3 segundos); sem resposta, abre a cópia guardada. Mude `VERSAO_CACHE` quando um arquivo novo
+  entrar na lista offline, para o celular guardar a lista nova inteira. (Substituiu a estratégia
+  anterior; ver "Ajustes depois do teste do professor".)
 - **Lista de arquivos offline explícita** (`public/arquivos-offline.js`), com teste que acusa
   arquivo esquecido, em vez de um passo de build que gere a lista.
 - **Caminhos relativos em tudo**, para o app funcionar numa subpasta do GitHub Pages
@@ -76,6 +77,31 @@ Escolhas feitas durante a construção, sem consulta prévia. Cada uma pode ser 
 - **Testado num celular de verdade** (28/10/2026): a v1, publicada no GitHub Pages, foi adicionada
   à tela inicial e funcionou offline no celular do autor. A v2 (completa) ainda não foi testada
   no celular.
+
+## Ajustes depois do teste do professor (28/10/2026)
+O professor testou e apontou três problemas: o app não mostrava a contagem do rebanho, as espécies
+ficavam misturadas e faltava relatório e acompanhamento.
+- **Três espécies separadas**: cabras e bodes, ovelhas e carneiros, vacas e bois, cada uma com
+  quatro categorias (fêmea adulta, macho adulto, filhote macho, filhote fêmea). O nome da categoria
+  já diz a espécie, então o registro guarda só a categoria.
+- **Matriz e reprodutor deixaram de ser categorias**: não diziam a espécie. Agora qualificam a
+  espécie citada ("matriz de cabra" = cabra; "bode reprodutor" = bode). Sem espécie, o app pergunta.
+  Registros antigos com essas categorias viram cabra e bode ao abrir o app (dados de teste).
+- **Borrega e cordeira** passaram a ser categoria própria (antes contavam como borrego).
+- **Contagem desde o primeiro registro**: sem contagem inicial, o rebanho começa do zero e soma os
+  lançamentos. "Nasceram 2, morreu 1" já mostra 1 animal. A tela avisa que a conta parte do zero e
+  oferece informar os animais que já existiam.
+- **Seu rebanho hoje** no topo da tela inicial, por espécie e por categoria.
+- **Relatório** no lugar de Indicadores: um cartão por espécie (início, nascimentos, mortes,
+  compras, vendas, final, mortalidade, vendas em R$) e gastos do rebanho inteiro. Botão para enviar
+  pelo WhatsApp (link `wa.me`, abre o app do WhatsApp; nada é enviado sem o produtor tocar).
+- **Acompanhamento por animal**: cadastro com nome ou brinco e como entrou (já estava, nasceu aqui,
+  comprei). "Nasceu aqui" e "Comprei" geram o lançamento; "já estava" soma o animal à contagem
+  inicial. Pesagem, venda e morte podem ser ligadas a um animal, que passa a ter histórico, último
+  peso e situação. O cadastro é opcional: lançamentos em grupo continuam funcionando.
+- **A v1 também mostra a contagem** por espécie, continuando sem relatório.
+- **Service worker busca a versão nova primeiro** (espera até 3 segundos) e só usa a cópia guardada
+  sem rede. Antes, a primeira abertura depois de uma atualização mostrava a versão antiga.
 
 ## Voz (Vosk)
 - **Não instalado.** O CLAUDE.md pede autorização antes de instalar pacotes, e a licença da

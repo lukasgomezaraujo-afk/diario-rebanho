@@ -22,6 +22,7 @@
       <g id="i-pesagem" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></g>
       <g id="i-custo" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3"/></g>
       <g id="i-indicadores" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></g>
+      <g id="i-brinco" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></g>
       <g id="i-lista" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></g>
     </defs>
   </svg>
@@ -37,6 +38,7 @@
 
     <section data-tela="inicio" hidden>
       <h1 class="marca">Diário do Rebanho</h1>
+      <section id="rebanho-hoje" class="rebanho-hoje" aria-live="polite"></section>
       <button class="btn principal falar" data-ir="voz">
         <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-microfone"/></svg>
         Falar o que aconteceu
@@ -52,7 +54,8 @@
         <button class="tile tipo-custo" data-atalho="custo"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-custo"/></svg>Gasto</button>
       </div>
       <div class="menu">
-        <button class="btn" data-ir="indicadores"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-indicadores"/></svg>Indicadores</button>
+        <button class="btn" data-ir="relatorio"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-indicadores"/></svg>Relatório</button>
+        <button class="btn" data-ir="animais"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-brinco"/></svg>Animais</button>
         <button class="btn" data-ir="lancamentos"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lista"/></svg>Lançamentos</button>
       </div>
       <p class="rodape"><button class="link" data-acao="exportar">Exportar dados</button></p>
@@ -77,13 +80,22 @@
         </fieldset>
         <fieldset id="grupo-categoria" hidden>
           <legend>Qual animal?</legend>
-          <div class="chips categorias" id="chips-categoria"></div>
+          <div id="chips-categoria"></div>
         </fieldset>
         <fieldset id="grupo-quantidade" hidden>
           <legend>Quantos?</legend>
           <div class="chips numeros" id="chips-quantidade"></div>
           <label class="rotulo" for="qtd-outro">Outro número</label>
           <input id="qtd-outro" type="number" inputmode="numeric" min="1" step="1">
+        </fieldset>
+        <fieldset id="grupo-animal" hidden>
+          <legend>Qual deles? <small>(opcional)</small></legend>
+          <div class="chips" id="chips-animal"></div>
+        </fieldset>
+        <fieldset id="grupo-nome-novo" hidden>
+          <legend>Dar um nome? <small>(opcional)</small></legend>
+          <input id="nome-novo" maxlength="40" placeholder="nome ou número do brinco" autocomplete="off">
+          <p class="dica-esquerda">Com um nome, dá para acompanhar este animal em Animais.</p>
         </fieldset>
         <fieldset id="grupo-valor" hidden>
           <legend id="legenda-valor">Valor (R$)</legend>
@@ -111,17 +123,55 @@
       <ul id="lista" class="lista"></ul>
     </section>
 
-    <section data-tela="indicadores" hidden>
-      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1>Indicadores</h1></header>
+    <section data-tela="relatorio" hidden>
+      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1>Relatório</h1></header>
       <form id="form-saldo" hidden novalidate>
-        <p>Antes de começar, conte quantos animais você tem hoje. Deixe em branco o que não tiver.</p>
+        <p>Quantos animais você tinha no dia em que começou a anotar? Deixe em branco o que não tiver.</p>
         <div id="campos-saldo" class="campos-saldo"></div>
-        <label class="rotulo" for="data-saldo">Data da contagem</label>
+        <label class="rotulo" for="data-saldo">Data da contagem <small>(o dia em que começou a anotar)</small></label>
         <input id="data-saldo" type="date">
         <div id="erros-saldo" class="erros" role="alert"></div>
         <button type="submit" class="btn principal">Guardar contagem</button>
+        <button type="button" class="btn" data-acao="cancelar-saldo">Voltar sem guardar</button>
       </form>
       <div id="painel"></div>
+    </section>
+
+    <section data-tela="animais" hidden>
+      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1>Animais</h1></header>
+      <button class="btn principal" data-ir="novo-animal">Cadastrar um animal</button>
+      <div id="lista-animais"></div>
+    </section>
+
+    <section data-tela="animal" hidden>
+      <header class="topo"><button class="voltar" data-ir="animais">← Animais</button><h1 id="titulo-animal">Animal</h1></header>
+      <div id="detalhe-animal"></div>
+    </section>
+
+    <section data-tela="novo-animal" hidden>
+      <header class="topo"><button class="voltar" data-ir="animais">← Animais</button><h1>Cadastrar animal</h1></header>
+      <form id="form-animal" novalidate>
+        <label class="rotulo" for="animal-nome">Nome ou número do brinco</label>
+        <input id="animal-nome" maxlength="40" placeholder="Malhada, 027…" autocomplete="off">
+        <fieldset>
+          <legend>Qual animal?</legend>
+          <div id="animal-categorias"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Como entrou no rebanho?</legend>
+          <div class="chips" id="animal-entradas"></div>
+        </fieldset>
+        <fieldset id="grupo-animal-valor" hidden>
+          <legend>Quanto pagou? (R$, se souber)</legend>
+          <input id="animal-valor" inputmode="decimal" placeholder="0,00" autocomplete="off">
+        </fieldset>
+        <label class="rotulo" for="animal-data">Data</label>
+        <input id="animal-data" type="date">
+        <label class="rotulo" for="animal-obs">Observação <small>(opcional)</small></label>
+        <input id="animal-obs" maxlength="120" placeholder="mancha na testa, filha da Malhada…" autocomplete="off">
+        <div id="erros-animal" class="erros" role="alert"></div>
+        <button type="submit" class="btn principal">Cadastrar</button>
+      </form>
     </section>
 
     <div id="mensagem" class="mensagem" role="status" hidden></div>

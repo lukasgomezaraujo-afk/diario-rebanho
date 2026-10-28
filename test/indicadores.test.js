@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SEM_DADOS, calcularIndicadores, custoPorCabeca, mediaDeAnimais, periodoAnual, periodoMensal,
-  resumoTexto, saldoNaData, saldoPorCategoria, taxaMortalidade,
+  resumoPorEspecie, resumoTexto, saldoAtual, saldoNaData, saldoPorCategoria, taxaMortalidade,
 } from '../src/indicadores.js';
 
 const reg = (tipo, categoria, quantidade, data, valor = null) => ({ tipo, categoria, quantidade, data, valor });
@@ -81,10 +81,43 @@ test('indicadores cortam o período na contagem base e em hoje', () => {
   // Saldos: dias 10 e 11 com 10, dias 12 a 15 com 9 → 56 / 6.
   assert.ok(Math.abs(ind.media.media - 56 / 6) < 1e-9);
   assert.ok(Math.abs(ind.custoPorCabeca - 90 / (56 / 6)) < 1e-9);
-  assert.match(resumoTexto(ind, 'março de 2026'), /cabras: 10 → 9/);
+  assert.match(resumoTexto(ind, 'março de 2026'), /Cabras e bodes: 10 → 9 animais/);
 });
 
-test('indicadores sem contagem inicial pedem o saldo', () => {
-  const ind = calcularIndicadores({ saldoBase: null, registros: [], inicio: '2026-01-01', fim: '2026-01-31', hoje: '2026-02-01' });
-  assert.ok(ind.erro);
+test('sem contagem inicial, o rebanho é contado do zero pelos lançamentos', () => {
+  // O caso do professor: anotou 2 nascimentos e 1 morte e quer ver 1 animal.
+  const registros = [reg('nascimento', 'cabrito', 2, '2026-01-05'), reg('morte', 'cabrito', 1, '2026-01-10')];
+  assert.deepEqual(saldoAtual(null, registros, '2026-01-31'), { cabrito: 1 });
+  const ind = calcularIndicadores({ saldoBase: null, registros, inicio: '2026-01-01', fim: '2026-01-31', hoje: '2026-02-01' });
+  assert.equal(ind.erro, undefined);
+  assert.equal(ind.semContagemInicial, true);
+  assert.equal(ind.porEspecie.caprino.final, 1);
+});
+
+test('lançamentos de hoje entram na contagem de hoje', () => {
+  assert.deepEqual(saldoAtual(null, [reg('compra', 'vaca', 3, '2026-05-02')], '2026-05-02'), { vaca: 3 });
+});
+
+test('resumo separa cabras, ovelhas e vacas', () => {
+  const resumo = resumoPorEspecie({ cabra: 7, cabrito: 3, ovelha: 4, vaca: 2, bezerro: 1 });
+  assert.equal(resumo.caprino.total, 10);
+  assert.deepEqual(resumo.caprino.categorias, { cabra: 7, bode: 0, cabrito: 3, cabrita: 0 });
+  assert.equal(resumo.ovino.total, 4);
+  assert.equal(resumo.bovino.total, 3);
+});
+
+test('resumo deixa de fora a espécie que não aparece', () => {
+  assert.deepEqual(Object.keys(resumoPorEspecie({ ovelha: 2 })), ['ovino']);
+});
+
+test('relatório calcula a mortalidade de cada espécie separada', () => {
+  const base = { data: '2026-01-01', porCategoria: { cabra: 10, vaca: 4 } };
+  const registros = [reg('morte', 'cabra', 1, '2026-01-01'), reg('venda', 'vaca', 1, '2026-01-01', 3000)];
+  const ind = calcularIndicadores({ saldoBase: base, registros, inicio: '2026-01-01', fim: '2026-01-01', hoje: '2026-01-01' });
+  assert.equal(ind.porEspecie.caprino.mortes, 1);
+  assert.equal(ind.porEspecie.caprino.final, 9);
+  assert.ok(Math.abs(ind.porEspecie.caprino.mortalidade - (1 / 9) * 100) < 1e-9);
+  assert.equal(ind.porEspecie.bovino.mortalidade, 0);
+  assert.equal(ind.porEspecie.bovino.receitaVendas, 3000);
+  assert.equal(ind.porEspecie.ovino, undefined);
 });
