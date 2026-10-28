@@ -58,6 +58,23 @@ Escolhas feitas durante a construção, sem consulta prévia. Cada uma pode ser 
   não teria como voltar para o aparelho.
 - **O servidor também entrega `src/`**, para o navegador usar exatamente os mesmos módulos testados.
 
+## Uso no celular (Eixo 2, Desafio 6)
+- **App instalável e offline (PWA)** em vez de app de loja: não precisa de conta de desenvolvedor,
+  não paga nada e atualiza sozinho quando houver sinal. Para o pequeno produtor, a barreira é menor.
+- **Cache que responde na hora e atualiza por trás.** O app abre mesmo sem sinal; quando o celular
+  conecta, a próxima abertura já vem com a versão nova. Não é preciso mudar `VERSAO_CACHE` a cada
+  alteração; mude só se quiser forçar a limpeza da cópia antiga.
+- **Lista de arquivos offline explícita** (`public/arquivos-offline.js`), com teste que acusa
+  arquivo esquecido, em vez de um passo de build que gere a lista.
+- **Caminhos relativos em tudo**, para o app funcionar numa subpasta do GitHub Pages
+  (`usuario.github.io/repositorio/`). Um teste barra caminhos absolutos.
+- **GitHub Pages pelo GitHub Actions**: o workflow roda `npm test` antes de publicar; se um teste
+  falhar, nada é publicado. A ativação no GitHub (Settings → Pages) é do dono do repositório.
+- **Testado** no Chrome do computador, numa subpasta que imita o Pages: o service worker guardou os
+  17 arquivos e, com o servidor desligado, o app abriu e salvou um registro. **Não testado** ainda
+  num celular de verdade. O navegador embutido do Claude não aceita service worker, por isso o
+  teste foi no Chrome.
+
 ## Voz (Vosk)
 - **Não instalado.** O CLAUDE.md pede autorização antes de instalar pacotes, e a licença da
   biblioteca e do modelo ainda **não foi confirmada** na documentação oficial.

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Diário do Rebanho: v0 rascunho</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="../../icones/icone-192.png">
   <style>
     /* v0: rascunho de papel. Só telas e dados de exemplo; nada salva nem calcula. */
     :root { --tinta: #222; --lapis: #777; --papel: #fdfcf7; }
@@ -120,6 +120,10 @@
       document.querySelectorAll('[data-tela]').forEach((tela) => { tela.hidden = tela.dataset.tela !== destino; });
       window.scrollTo(0, 0);
     });
+  </script>
+  <script>
+    // Guarda esta página no celular para abrir sem internet.
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../../sw.js', { type: 'module' }).catch(() => {});
   </script>
 </body>
 </html>

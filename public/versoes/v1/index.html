@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Diário do Rebanho: v1 mínimo</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="../../icones/icone-192.png">
   <style>
     /* v1: o mínimo que funciona. Registrar por botões e ver a lista. */
     * { box-sizing: border-box; }
@@ -56,9 +56,9 @@
   </main>
 
   <script type="module">
-    import { validarRegistro, ordenarRegistros } from '/src/registros.js';
-    import { CATEGORIAS, descrever, nomeCategoria } from '/src/rotulos.js';
-    import { formatarData, isoDeData } from '/src/formato.js';
+    import { validarRegistro, ordenarRegistros } from '../../src/registros.js';
+    import { CATEGORIAS, descrever, nomeCategoria } from '../../src/rotulos.js';
+    import { formatarData, isoDeData } from '../../src/formato.js';
 
     // Dados guardados separados da versão completa, para uma não bagunçar a outra.
     const CHAVE = 'diario-rebanho:versao-1';
@@ -124,6 +124,10 @@
     });
 
     desenhar();
+  </script>
+  <script>
+    // Guarda esta página no celular para abrir sem internet.
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../../sw.js', { type: 'module' }).catch(() => {});
   </script>
 </body>
 </html>

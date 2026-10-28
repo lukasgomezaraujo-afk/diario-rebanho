@@ -1,8 +1,8 @@
 // Reconhecimento de voz offline com Vosk (biblioteca vosk-browser, WebAssembly).
 // Só liga se a biblioteca e o modelo forem colocados manualmente (ver public/modelo-pt/README.md).
 // Nada é baixado da internet: os arquivos são lidos deste mesmo servidor.
-const BIBLIOTECA = '/vendor/vosk.js';
-const MODELO = '/modelo-pt/modelo.tar.gz';
+const BIBLIOTECA = new URL('./vendor/vosk.js', import.meta.url).href;
+const MODELO = new URL('./modelo-pt/modelo.tar.gz', import.meta.url).href;
 
 async function existe(url) {
   try {

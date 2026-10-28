@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Diário do Rebanho: versões</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="../icones/icone-192.png">
   <style>
     * { box-sizing: border-box; }
     html { font-size: 20px; }
@@ -36,26 +36,30 @@
     <h1>Diário do Rebanho</h1>
     <p class="sub">Como a ideia cresceu, em três versões.</p>
 
-    <a class="versao v0" href="/versoes/v0/">
+    <a class="versao v0" href="v0/">
       <span class="rotulo">Versão 0</span>
       <strong>Rascunho</strong>
       <p>Só as telas, como num papel. Dá para navegar, mas nada salva.</p>
       <ul><li>Pergunta: o produtor anotaria mais se pudesse falar?</li></ul>
     </a>
 
-    <a class="versao v1" href="/versoes/v1/">
+    <a class="versao v1" href="v1/">
       <span class="rotulo">Versão 1</span>
       <strong>O mínimo que funciona</strong>
       <p>Anotar nascimento, morte, compra e venda por botões, e ver a lista.</p>
       <ul><li>Fica guardado no celular, sem internet.</li><li>Ainda sem voz e sem números do rebanho.</li></ul>
     </a>
 
-    <a class="versao v2" href="/">
+    <a class="versao v2" href="../">
       <span class="rotulo">Versão 2</span>
       <strong>Protótipo completo</strong>
       <p>Frase falada ou escrita, botões coloridos, pesagem, gastos e indicadores.</p>
       <ul><li>Mortalidade e custo por cabeça calculados.</li><li>Cópia de segurança do que foi anotado.</li></ul>
     </a>
   </main>
+  <script>
+    // Guarda esta página no celular para abrir sem internet.
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js', { type: 'module' }).catch(() => {});
+  </script>
 </body>
 </html>

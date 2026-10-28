@@ -1,5 +1,7 @@
 node_modules/
 .claude/
+# Pasta gerada por "npm run site".
+site/
 # Arquivos de voz são colocados à mão e não vão para o repositório.
 public/vendor/
 public/modelo-pt/*.tar.gz

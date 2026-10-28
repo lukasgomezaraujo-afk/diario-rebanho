@@ -1,9 +1,9 @@
 // Interface do Diário do Rebanho. Só cuida da tela: as regras ficam em /src.
-import { interpretar } from '/src/interpretador.js';
-import { CATEGORIAS, EXPLICACOES, ROTULOS_TIPO, TIPOS, TIPOS_REGISTRO, descrever, nomeCategoria } from '/src/rotulos.js';
-import { ordenarRegistros, validarRegistro } from '/src/registros.js';
-import { SEM_DADOS, calcularIndicadores, periodoAnual, periodoMensal, resumoTexto } from '/src/indicadores.js';
-import { formatarData, formatarNumero, formatarReais, isoDeData, lerValorDigitado } from '/src/formato.js';
+import { interpretar } from './src/interpretador.js';
+import { CATEGORIAS, EXPLICACOES, ROTULOS_TIPO, TIPOS, TIPOS_REGISTRO, descrever, nomeCategoria } from './src/rotulos.js';
+import { ordenarRegistros, validarRegistro } from './src/registros.js';
+import { SEM_DADOS, calcularIndicadores, periodoAnual, periodoMensal, resumoTexto } from './src/indicadores.js';
+import { formatarData, formatarNumero, formatarReais, isoDeData, lerValorDigitado } from './src/formato.js';
 import { ouvir, verificarVoz } from './voz.js';
 
 const CHAVE = 'diario-rebanho:v1';
@@ -618,3 +618,8 @@ $('#arquivo-importar').addEventListener('change', (evento) => {
 });
 
 irPara(location.hash.slice(1) || 'inicio', { historico: false });
+
+// Guarda o app no celular para abrir sem internet (só funciona em https ou localhost).
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js', { type: 'module' }).catch(() => {});
+}
