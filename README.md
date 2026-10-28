@@ -136,8 +136,9 @@ Para coletar com produtores e ensinar ao interpretador:
 **Eixo 2: Sucessão e modernização do campo.**
 
 - **Desafio 6, Tecnologia acessível ao pequeno produtor (item 6.1.2): desafio principal.**
-  - Realidade financeira: gratuito, sem mensalidade, feito para celular Android simples (ainda falta
-    testar num aparelho de entrada de verdade).
+  - Realidade financeira: gratuito, sem mensalidade, feito para celular Android simples.
+  - Testado: a v1 foi instalada na tela inicial de um celular e funcionou sem internet. Falta
+    testar a v2 no celular e num aparelho de entrada, como o de um produtor.
   - Realidade estrutural: funciona sem internet depois de instalado; os dados ficam no celular.
   - Realidade operacional: botões de 56px, letra grande, uma cor e um ícone por ação, registro em
     até 4 toques ou por uma frase como "nasceram dois cabritos". Sem cadastro e sem senha.

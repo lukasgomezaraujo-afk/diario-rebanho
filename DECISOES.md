@@ -71,9 +71,11 @@ Escolhas feitas durante a construção, sem consulta prévia. Cada uma pode ser 
 - **GitHub Pages pelo GitHub Actions**: o workflow roda `npm test` antes de publicar; se um teste
   falhar, nada é publicado. A ativação no GitHub (Settings → Pages) é do dono do repositório.
 - **Testado** no Chrome do computador, numa subpasta que imita o Pages: o service worker guardou os
-  17 arquivos e, com o servidor desligado, o app abriu e salvou um registro. **Não testado** ainda
-  num celular de verdade. O navegador embutido do Claude não aceita service worker, por isso o
-  teste foi no Chrome.
+  17 arquivos e, com o servidor desligado, o app abriu e salvou um registro. O navegador embutido
+  do Claude não aceita service worker, por isso o teste foi no Chrome.
+- **Testado num celular de verdade** (28/10/2026): a v1, publicada no GitHub Pages, foi adicionada
+  à tela inicial e funcionou offline no celular do autor. A v2 (completa) ainda não foi testada
+  no celular.
 
 ## Voz (Vosk)
 - **Não instalado.** O CLAUDE.md pede autorização antes de instalar pacotes, e a licença da
