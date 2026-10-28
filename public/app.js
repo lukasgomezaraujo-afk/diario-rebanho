@@ -106,6 +106,12 @@ $('#confirmar').addEventListener('cancel', () => fecharConfirmacao(false));
 const chip = (campo, valor, rotulo, ativo, detalhe = '') =>
   `<button type="button" class="chip${ativo ? ' ativo' : ''}" data-campo="${campo}" data-valor="${esc(valor)}" aria-pressed="${ativo}">${esc(rotulo)}${detalhe ? `<small>${esc(detalhe)}</small>` : ''}</button>`;
 
+const icone = (nome) => `<svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${nome}"/></svg>`;
+
+// Chip de tipo com a mesma cor e ícone do botão da tela inicial.
+const chipTipo = (campo, tipo, ativo) =>
+  `<button type="button" class="chip tipo-${tipo}${ativo ? ' ativo' : ''}" data-campo="${campo}" data-valor="${tipo}" aria-pressed="${ativo}">${icone(tipo)}${ROTULO_ACAO[tipo]}</button>`;
+
 // ---------- Registro por voz ou frase ----------
 
 async function abrirVoz() {
@@ -114,7 +120,7 @@ async function abrirVoz() {
   caixa.textContent = 'Verificando a voz…';
   const voz = await verificarVoz();
   if (voz.ok) {
-    caixa.innerHTML = '<button class="microfone pequeno" data-acao="gravar" id="botao-gravar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg><span>Tocar e falar</span></button>';
+    caixa.innerHTML = `<button class="btn principal falar" data-acao="gravar" id="botao-gravar">${icone('microfone')}<span>Tocar e falar</span></button>`;
   } else {
     caixa.className = 'caixa alerta';
     caixa.innerHTML = `<p><strong>${esc(voz.motivo)}</strong></p><p>Escreva a frase aqui embaixo ou use o registro rápido.</p><button class="btn" data-ir="rapido">Ir para o registro rápido</button>`;
@@ -200,7 +206,7 @@ function renderEntendido() {
   partes.push(`<p class="entendi">Entendi: <strong id="frase-entendida">${esc(fraseEntendida())}</strong>. Está certo?</p>`);
   if (i.avisos.length) partes.push(`<ul class="avisos">${i.avisos.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>`);
   if (falta.has('tipo')) {
-    partes.push(`<p class="rotulo">O que aconteceu?</p><div class="chips">${TIPOS.map((t) => chip('voz-tipo', t, ROTULO_ACAO[t], entendido.tipo === t)).join('')}</div>`);
+    partes.push(`<p class="rotulo">O que aconteceu?</p><div class="chips">${TIPOS.map((t) => chipTipo('voz-tipo', t, entendido.tipo === t)).join('')}</div>`);
   }
   if (falta.has('categoria')) {
     partes.push(`<p class="rotulo">Qual animal?</p><div class="chips categorias">${CATEGORIAS.map((c) => chip('voz-categoria', c, capital(nomeCategoria(c, 1)), entendido.categoria === c, EXPLICACOES[c])).join('')}</div>`);
@@ -256,7 +262,7 @@ function atualizarRapido() {
   const r = rascunho;
   const comAnimal = r.tipo && r.tipo !== 'custo';
   const pronto = r.tipo === 'custo' || Boolean(comAnimal && r.categoria && r.quantidade);
-  $('#chips-tipo').innerHTML = TIPOS_REGISTRO.map((t) => chip('tipo', t, ROTULO_ACAO[t], r.tipo === t)).join('');
+  $('#chips-tipo').innerHTML = TIPOS_REGISTRO.map((t) => chipTipo('tipo', t, r.tipo === t)).join('');
   $('#chips-categoria').innerHTML = CATEGORIAS.map((c) => chip('categoria', c, capital(nomeCategoria(c, 1)), r.categoria === c, EXPLICACOES[c])).join('');
   $('#chips-quantidade').innerHTML = [1, 2, 3, 4, 5, 6].map((n) => chip('quantidade', n, n, r.quantidade === n)).join('');
   $('#grupo-categoria').hidden = !comAnimal;
@@ -309,7 +315,7 @@ function renderLancamentos() {
     ? '<li class="vazio">Nenhum lançamento ainda.</li>'
     : lista.map((r) => `
       <li class="item">
-        <div><span class="data">${formatarData(r.data)}</span> · <strong>${ROTULOS_TIPO[r.tipo]}</strong></div>
+        <div><span class="etiqueta tipo-${r.tipo}">${icone(r.tipo)}${ROTULOS_TIPO[r.tipo]}</span> <span class="data">${formatarData(r.data)}</span></div>
         <div>${esc(capital(descrever(r)))}</div>
         <div class="acoes">
           <button class="btn" data-acao="editar" data-id="${esc(r.id)}">Editar</button>

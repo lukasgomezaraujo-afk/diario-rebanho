@@ -3,13 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1d4d2b">
+  <meta name="theme-color" content="#ffffff">
   <title>Diário do Rebanho</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/estilo.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-microfone" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></g>
+      <g id="i-nascimento" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-9M12 12c0-4 3-7 7-7 0 4-3 7-7 7zM12 14c0-3.3-2.7-6-6-6 0 3.3 2.7 6 6 6zM7 21h10"/></g>
+      <g id="i-morte" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8h10"/></g>
+      <g id="i-venda" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/></g>
+      <g id="i-compra" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/><path d="M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H6"/></g>
+      <g id="i-pesagem" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></g>
+      <g id="i-custo" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3"/></g>
+      <g id="i-indicadores" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></g>
+      <g id="i-lista" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></g>
+    </defs>
+  </svg>
   <main id="app">
     <section data-tela="aviso" hidden>
       <h1 class="marca">Diário do Rebanho</h1>
@@ -22,20 +35,23 @@
 
     <section data-tela="inicio" hidden>
       <h1 class="marca">Diário do Rebanho</h1>
-      <button class="microfone" data-ir="voz">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-        <span>Falar</span>
+      <button class="btn principal falar" data-ir="voz">
+        <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-microfone"/></svg>
+        Falar o que aconteceu
       </button>
       <p class="dica">Ex.: “nasceram dois cabritos”</p>
-      <div class="atalhos">
-        <button class="btn" data-atalho="nascimento">Nasceu</button>
-        <button class="btn" data-atalho="morte">Morreu</button>
-        <button class="btn" data-atalho="venda">Vendeu</button>
+      <h2 class="titulo-secao">Ou toque no que aconteceu</h2>
+      <div class="acoes-tipo">
+        <button class="tile tipo-nascimento" data-atalho="nascimento"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-nascimento"/></svg>Nasceu</button>
+        <button class="tile tipo-morte" data-atalho="morte"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-morte"/></svg>Morreu</button>
+        <button class="tile tipo-venda" data-atalho="venda"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-venda"/></svg>Vendi</button>
+        <button class="tile tipo-compra" data-atalho="compra"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-compra"/></svg>Comprei</button>
+        <button class="tile tipo-pesagem" data-atalho="pesagem"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pesagem"/></svg>Pesei</button>
+        <button class="tile tipo-custo" data-atalho="custo"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-custo"/></svg>Gasto</button>
       </div>
       <div class="menu">
-        <button class="btn principal" data-ir="rapido">Registro rápido</button>
-        <button class="btn" data-ir="indicadores">Indicadores</button>
-        <button class="btn" data-ir="lancamentos">Lançamentos</button>
+        <button class="btn" data-ir="indicadores"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-indicadores"/></svg>Indicadores</button>
+        <button class="btn" data-ir="lancamentos"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lista"/></svg>Lançamentos</button>
       </div>
       <p class="rodape"><button class="link" data-acao="exportar">Exportar dados</button></p>
     </section>
