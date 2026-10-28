@@ -41,7 +41,7 @@ main {
   max-width: 34rem;
   margin: 0 auto;
   padding: 16px 16px 96px;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 h1 { font-size: 1.4rem; margin: 0; }
@@ -121,6 +121,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
 .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .menu .btn + .btn { margin-top: 0; }
+@media (max-width: 420px) {
+  .menu { grid-template-columns: 1fr; }
+}
 .rodape { text-align: center; margin-top: 16px; }
 
 .topo { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
