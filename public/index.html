@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1d4d2b">
+  <title>Diário do Rebanho</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/estilo.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main id="app">
+    <section data-tela="aviso" hidden>
+      <h1 class="marca">Diário do Rebanho</h1>
+      <div class="caixa destaque">
+        <p>Seus registros ficam guardados <strong>só neste aparelho</strong>. Nada é enviado pela internet.</p>
+        <p>Se trocar de celular ou limpar os dados do navegador, os registros se perdem. Use <strong>Exportar dados</strong> de vez em quando para guardar uma cópia.</p>
+      </div>
+      <button class="btn principal" data-acao="aceitar-aviso">Entendi, começar</button>
+    </section>
+
+    <section data-tela="inicio" hidden>
+      <h1 class="marca">Diário do Rebanho</h1>
+      <button class="microfone" data-ir="voz">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+        <span>Falar</span>
+      </button>
+      <p class="dica">Ex.: “nasceram dois cabritos”</p>
+      <div class="atalhos">
+        <button class="btn" data-atalho="nascimento">Nasceu</button>
+        <button class="btn" data-atalho="morte">Morreu</button>
+        <button class="btn" data-atalho="venda">Vendeu</button>
+      </div>
+      <div class="menu">
+        <button class="btn principal" data-ir="rapido">Registro rápido</button>
+        <button class="btn" data-ir="indicadores">Indicadores</button>
+        <button class="btn" data-ir="lancamentos">Lançamentos</button>
+      </div>
+      <p class="rodape"><button class="link" data-acao="exportar">Exportar dados</button></p>
+    </section>
+
+    <section data-tela="voz" hidden>
+      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1>Registrar falando</h1></header>
+      <div id="voz-estado" class="caixa" role="status"></div>
+      <p id="transcricao" class="transcricao" hidden aria-live="polite"></p>
+      <label for="frase" class="rotulo">Ou escreva o que aconteceu</label>
+      <textarea id="frase" rows="2" placeholder="vendi três cabritos por setecentos reais"></textarea>
+      <button class="btn principal" data-acao="entender">Entender a frase</button>
+      <div id="interpretacao" aria-live="polite"></div>
+    </section>
+
+    <section data-tela="rapido" hidden>
+      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1 id="titulo-rapido">Registro rápido</h1></header>
+      <form id="form-rapido" novalidate>
+        <fieldset>
+          <legend>O que aconteceu?</legend>
+          <div class="chips" id="chips-tipo"></div>
+        </fieldset>
+        <fieldset id="grupo-categoria" hidden>
+          <legend>Qual animal?</legend>
+          <div class="chips categorias" id="chips-categoria"></div>
+        </fieldset>
+        <fieldset id="grupo-quantidade" hidden>
+          <legend>Quantos?</legend>
+          <div class="chips numeros" id="chips-quantidade"></div>
+          <label class="rotulo" for="qtd-outro">Outro número</label>
+          <input id="qtd-outro" type="number" inputmode="numeric" min="1" step="1">
+        </fieldset>
+        <fieldset id="grupo-valor" hidden>
+          <legend id="legenda-valor">Valor (R$)</legend>
+          <input id="valor" inputmode="decimal" placeholder="0,00" autocomplete="off">
+          <div id="campo-descricao" hidden>
+            <label class="rotulo" for="descricao">Gasto com o quê?</label>
+            <input id="descricao" maxlength="80" placeholder="ração, vacina, remédio…" autocomplete="off">
+          </div>
+        </fieldset>
+        <fieldset id="grupo-peso" hidden>
+          <legend>Peso (kg)</legend>
+          <input id="peso" inputmode="decimal" placeholder="ex.: 32,5" autocomplete="off">
+        </fieldset>
+        <fieldset id="grupo-data" hidden>
+          <legend>Data</legend>
+          <input id="data" type="date">
+        </fieldset>
+        <div id="erros-rapido" class="erros" role="alert"></div>
+        <button type="submit" class="btn principal" id="salvar-rapido" hidden>Salvar</button>
+      </form>
+    </section>
+
+    <section data-tela="lancamentos" hidden>
+      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1>Lançamentos</h1></header>
+      <ul id="lista" class="lista"></ul>
+    </section>
+
+    <section data-tela="indicadores" hidden>
+      <header class="topo"><button class="voltar" data-ir="inicio">← Início</button><h1>Indicadores</h1></header>
+      <form id="form-saldo" hidden novalidate>
+        <p>Antes de começar, conte quantos animais você tem hoje. Deixe em branco o que não tiver.</p>
+        <div id="campos-saldo" class="campos-saldo"></div>
+        <label class="rotulo" for="data-saldo">Data da contagem</label>
+        <input id="data-saldo" type="date">
+        <div id="erros-saldo" class="erros" role="alert"></div>
+        <button type="submit" class="btn principal">Guardar contagem</button>
+      </form>
+      <div id="painel"></div>
+    </section>
+
+    <div id="mensagem" class="mensagem" role="status" hidden></div>
+
+    <dialog id="confirmar">
+      <p id="confirmar-texto"></p>
+      <div class="acoes">
+        <button type="button" class="btn" data-acao="confirmar-nao">Cancelar</button>
+        <button type="button" class="btn perigo" data-acao="confirmar-sim" id="confirmar-sim">Sim</button>
+      </div>
+    </dialog>
+    <input type="file" id="arquivo-importar" accept="application/json,.json" hidden>
+  </main>
+</body>
+</html>
