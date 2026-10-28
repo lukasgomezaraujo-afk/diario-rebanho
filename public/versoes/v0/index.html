@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diário do Rebanho: v0 rascunho</title>
+  <link rel="icon" href="data:,">
+  <style>
+    /* v0: rascunho de papel. Só telas e dados de exemplo; nada salva nem calcula. */
+    :root { --tinta: #222; --lapis: #777; --papel: #fdfcf7; }
+    * { box-sizing: border-box; }
+    html { font-size: 20px; }
+    body {
+      margin: 0;
+      background: var(--papel);
+      color: var(--tinta);
+      font-family: "Segoe Print", "Comic Sans MS", "Chalkboard SE", cursive, sans-serif;
+      line-height: 1.4;
+    }
+    main { max-width: 34rem; margin: 0 auto; padding: 16px 16px 48px; }
+    .faixa {
+      margin: 0 0 16px;
+      padding: 10px 12px;
+      border: 2px dashed var(--tinta);
+      border-radius: 4px;
+      font-size: .8rem;
+      text-align: center;
+    }
+    h1 { font-size: 1.3rem; margin: 0 0 12px; }
+    h2 { font-size: 1rem; margin: 18px 0 8px; color: var(--lapis); }
+    .caixa, button {
+      display: block;
+      width: 100%;
+      min-height: 56px;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border: 2px solid var(--tinta);
+      border-radius: 6px 14px 8px 12px;
+      background: transparent;
+      color: var(--tinta);
+      font: inherit;
+      text-align: center;
+      cursor: pointer;
+    }
+    .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grade button { margin: 0; min-height: 80px; }
+    .rabisco { border-style: dashed; color: var(--lapis); }
+    .nota { font-size: .75rem; color: var(--lapis); margin: -4px 0 12px; }
+    .item { text-align: left; cursor: default; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="faixa">Versão 0 · rascunho · as telas ainda não funcionam de verdade</p>
+
+    <section data-tela="inicio">
+      <h1>Diário do Rebanho</h1>
+      <button data-ir="falar">🎤 Falar o que aconteceu</button>
+      <p class="nota">ideia: o produtor fala e o app anota</p>
+      <h2>ou tocar no que aconteceu</h2>
+      <div class="grade">
+        <button data-ir="registro">Nasceu</button>
+        <button data-ir="registro">Morreu</button>
+        <button data-ir="registro">Vendi</button>
+        <button data-ir="registro">Comprei</button>
+      </div>
+      <h2>depois</h2>
+      <button data-ir="lista">Ver o que anotei</button>
+      <button class="rabisco" data-ir="numeros">Números do rebanho (?)</button>
+    </section>
+
+    <section data-tela="falar" hidden>
+      <h1>Falar</h1>
+      <div class="caixa rabisco">aqui o microfone vai ouvir…</div>
+      <p class="nota">exemplo do que o app entenderia:</p>
+      <div class="caixa">“nasceram dois cabritos”<br>→ Nascimento · 2 cabritos</div>
+      <button data-ir="lista">Está certo, salvar</button>
+      <button data-ir="inicio">Voltar</button>
+    </section>
+
+    <section data-tela="registro" hidden>
+      <h1>Anotar</h1>
+      <h2>qual animal?</h2>
+      <div class="grade">
+        <button>Cabra</button><button>Bode</button>
+        <button>Cabrito</button><button>Ovelha</button>
+      </div>
+      <h2>quantos?</h2>
+      <div class="grade">
+        <button>1</button><button>2</button><button>3</button><button>mais</button>
+      </div>
+      <h2>&nbsp;</h2>
+      <button data-ir="lista">Salvar</button>
+      <button data-ir="inicio">Voltar</button>
+    </section>
+
+    <section data-tela="lista" hidden>
+      <h1>O que anotei</h1>
+      <p class="nota">dados de exemplo</p>
+      <div class="caixa item">12/10 · Vendi 3 cabritos · R$ 700 (exemplo)</div>
+      <div class="caixa item">05/10 · Nasceram 2 cabritos (exemplo)</div>
+      <div class="caixa item">02/10 · Morreu 1 cabra (exemplo)</div>
+      <button data-ir="inicio">Voltar</button>
+    </section>
+
+    <section data-tela="numeros" hidden>
+      <h1>Números do rebanho</h1>
+      <div class="caixa rabisco">quantos animais tenho?<br>quantos morreram?<br>quanto gastei por cabeça?</div>
+      <p class="nota">ainda não sei como calcular. perguntar aos produtores o que importa pra eles.</p>
+      <button data-ir="inicio">Voltar</button>
+    </section>
+  </main>
+
+  <script>
+    // Só troca de tela. Não guarda nada.
+    document.addEventListener('click', (evento) => {
+      const destino = evento.target.closest('[data-ir]')?.dataset.ir;
+      if (!destino) return;
+      document.querySelectorAll('[data-tela]').forEach((tela) => { tela.hidden = tela.dataset.tela !== destino; });
+      window.scrollTo(0, 0);
+    });
+  </script>
+</body>
+</html>

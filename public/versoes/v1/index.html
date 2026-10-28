@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diário do Rebanho: v1 mínimo</title>
+  <link rel="icon" href="data:,">
+  <style>
+    /* v1: o mínimo que funciona. Registrar por botões e ver a lista. */
+    * { box-sizing: border-box; }
+    html { font-size: 20px; }
+    body { margin: 0; background: #fff; color: #111; font-family: system-ui, sans-serif; line-height: 1.4; }
+    main { max-width: 34rem; margin: 0 auto; padding: 16px 16px 48px; }
+    .faixa { margin: 0 0 16px; padding: 8px 12px; background: #eef2ff; color: #1e3a8a; border-radius: 8px; font-size: .8rem; text-align: center; }
+    h1 { font-size: 1.3rem; margin: 0 0 12px; }
+    h2 { font-size: 1rem; margin: 16px 0 8px; }
+    button {
+      min-height: 56px;
+      padding: 8px 12px;
+      border: 2px solid #111;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.ativo { background: #111; color: #fff; }
+    button.salvar { width: 100%; margin-top: 16px; background: #111; color: #fff; }
+    .opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .opcoes.numeros { grid-template-columns: repeat(3, 1fr); }
+    .erro { color: #b91c1c; font-weight: 600; min-height: 1.4em; margin: 8px 0 0; }
+    .ok { color: #166534; font-weight: 600; min-height: 1.4em; margin: 8px 0 0; }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border: 1px solid #999; border-radius: 8px; }
+    li small { color: #555; display: block; }
+    .vazio { color: #555; border: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="faixa">Versão 1 · o mínimo que funciona · sem voz e sem indicadores</p>
+    <h1>Diário do Rebanho</h1>
+
+    <h2>O que aconteceu?</h2>
+    <div class="opcoes" id="tipos"></div>
+    <h2>Qual animal?</h2>
+    <div class="opcoes" id="animais"></div>
+    <h2>Quantos?</h2>
+    <div class="opcoes numeros" id="quantidades"></div>
+    <button class="salvar" id="salvar">Salvar</button>
+    <p id="aviso" role="status"></p>
+
+    <h2>Anotações</h2>
+    <ul id="lista"></ul>
+  </main>
+
+  <script type="module">
+    import { validarRegistro, ordenarRegistros } from '/src/registros.js';
+    import { CATEGORIAS, descrever, nomeCategoria } from '/src/rotulos.js';
+    import { formatarData, isoDeData } from '/src/formato.js';
+
+    // Dados guardados separados da versão completa, para uma não bagunçar a outra.
+    const CHAVE = 'diario-rebanho:versao-1';
+    const TIPOS = { nascimento: 'Nasceu', morte: 'Morreu', compra: 'Comprei', venda: 'Vendi' };
+    const $ = (seletor) => document.querySelector(seletor);
+    const capital = (texto) => texto.charAt(0).toUpperCase() + texto.slice(1);
+
+    let registros = [];
+    try { registros = JSON.parse(localStorage.getItem(CHAVE)) ?? []; } catch { registros = []; }
+    const escolha = { tipo: null, categoria: null, quantidade: null };
+    let apagando = null;
+
+    function guardar() {
+      try { localStorage.setItem(CHAVE, JSON.stringify(registros)); } catch { avisar('Não consegui guardar neste aparelho.', true); }
+    }
+
+    function avisar(texto, erro = false) {
+      $('#aviso').textContent = texto;
+      $('#aviso').className = erro ? 'erro' : 'ok';
+    }
+
+    const botoes = (campo, pares) => pares
+      .map(([valor, rotulo]) => `<button data-campo="${campo}" data-valor="${valor}" class="${String(escolha[campo]) === String(valor) ? 'ativo' : ''}">${rotulo}</button>`)
+      .join('');
+
+    function desenhar() {
+      $('#tipos').innerHTML = botoes('tipo', Object.entries(TIPOS));
+      $('#animais').innerHTML = botoes('categoria', CATEGORIAS.map((c) => [c, capital(nomeCategoria(c, 1))]));
+      $('#quantidades').innerHTML = botoes('quantidade', [1, 2, 3, 4, 5, 6].map((n) => [n, n]));
+      const lista = ordenarRegistros(registros);
+      $('#lista').innerHTML = lista.length === 0
+        ? '<li class="vazio">Nada anotado ainda.</li>'
+        : lista.map((r) => `<li><span>${capital(descrever(r))}<small>${formatarData(r.data)}</small></span>
+            <button data-apagar="${r.id}">${apagando === r.id ? 'Confirmar' : 'Apagar'}</button></li>`).join('');
+    }
+
+    document.addEventListener('click', (evento) => {
+      const botao = evento.target.closest('button');
+      if (!botao) return;
+      if (botao.dataset.campo) {
+        escolha[botao.dataset.campo] = botao.dataset.campo === 'quantidade' ? Number(botao.dataset.valor) : botao.dataset.valor;
+        avisar('');
+      } else if (botao.id === 'salvar') {
+        const r = validarRegistro({ ...escolha, id: crypto.randomUUID(), data: isoDeData(new Date()), criadoEm: Date.now() }, isoDeData(new Date()));
+        if (!r.ok) { avisar(r.erros[0], true); return; }
+        registros.push(r.registro);
+        guardar();
+        avisar(`Anotado: ${descrever(r.registro)}.`);
+        Object.assign(escolha, { tipo: null, categoria: null, quantidade: null });
+      } else if (botao.dataset.apagar) {
+        // Primeiro toque pede confirmação; o segundo apaga.
+        const id = botao.dataset.apagar;
+        if (apagando === id) {
+          registros = registros.filter((r) => r.id !== id);
+          apagando = null;
+          guardar();
+          avisar('Anotação apagada.');
+        } else {
+          apagando = id;
+        }
+      }
+      desenhar();
+    });
+
+    desenhar();
+  </script>
+</body>
+</html>

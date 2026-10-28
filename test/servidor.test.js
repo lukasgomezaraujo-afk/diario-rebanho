@@ -24,6 +24,11 @@ test('servidor entrega a página e os módulos', async () => {
     const fora = await fetch(`http://localhost:${port}/src/..%2fserver.js`);
     assert.equal(fora.status, 403);
     assert.equal((await fetch(`http://localhost:${port}/nao-existe.js`)).status, 404);
+    for (const versao of ['/versoes/', '/versoes/v0/', '/versoes/v1/']) {
+      const resposta = await fetch(`http://localhost:${port}${versao}`);
+      assert.equal(resposta.status, 200, versao);
+      assert.match(await resposta.text(), /Diário do Rebanho/, versao);
+    }
   } finally {
     servidor.close();
   }

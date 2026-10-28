@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diário do Rebanho: versões</title>
+  <link rel="icon" href="data:,">
+  <style>
+    * { box-sizing: border-box; }
+    html { font-size: 20px; }
+    body { margin: 0; background: #fff; color: #111; font-family: system-ui, sans-serif; line-height: 1.45; }
+    main { max-width: 40rem; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .sub { color: #4b5563; margin: 0 0 20px; }
+    a.versao {
+      display: block;
+      margin: 0 0 14px;
+      padding: 16px;
+      border: 2px solid #111;
+      border-radius: 12px;
+      color: inherit;
+      text-decoration: none;
+    }
+    a.versao:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+    .rotulo { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
+    .v0 .rotulo { background: #f3f4f6; color: #374151; }
+    .v1 .rotulo { background: #dbeafe; color: #1e3a8a; }
+    .v2 .rotulo { background: #dcfce7; color: #14532d; }
+    a.versao strong { display: block; font-size: 1.1rem; margin: 6px 0 2px; }
+    a.versao p { margin: 0; color: #374151; }
+    a.versao ul { margin: 8px 0 0; padding-left: 1.1em; color: #374151; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Diário do Rebanho</h1>
+    <p class="sub">Como a ideia cresceu, em três versões.</p>
+
+    <a class="versao v0" href="/versoes/v0/">
+      <span class="rotulo">Versão 0</span>
+      <strong>Rascunho</strong>
+      <p>Só as telas, como num papel. Dá para navegar, mas nada salva.</p>
+      <ul><li>Pergunta: o produtor anotaria mais se pudesse falar?</li></ul>
+    </a>
+
+    <a class="versao v1" href="/versoes/v1/">
+      <span class="rotulo">Versão 1</span>
+      <strong>O mínimo que funciona</strong>
+      <p>Anotar nascimento, morte, compra e venda por botões, e ver a lista.</p>
+      <ul><li>Fica guardado no celular, sem internet.</li><li>Ainda sem voz e sem números do rebanho.</li></ul>
+    </a>
+
+    <a class="versao v2" href="/">
+      <span class="rotulo">Versão 2</span>
+      <strong>Protótipo completo</strong>
+      <p>Frase falada ou escrita, botões coloridos, pesagem, gastos e indicadores.</p>
+      <ul><li>Mortalidade e custo por cabeça calculados.</li><li>Cópia de segurança do que foi anotado.</li></ul>
+    </a>
+  </main>
+</body>
+</html>

@@ -21,6 +21,19 @@ Abra http://localhost:3000. Para usar outra porta: `PORT=8080 npm start` (no Pow
 Para testar no celular na mesma rede Wi-Fi, abra `http://IP-DO-COMPUTADOR:3000`. O microfone só
 funciona em `localhost` ou HTTPS; o resto funciona normalmente.
 
+## Três versões para a apresentação
+
+Com o servidor rodando, abra http://localhost:3000/versoes/ para ver as três versões lado a lado:
+
+| Versão | Endereço | O que mostra |
+| --- | --- | --- |
+| v0, rascunho | `/versoes/v0/` | Só as telas, com dados de exemplo. Dá para navegar, nada salva. |
+| v1, mínimo | `/versoes/v1/` | Anotar nascimento, morte, compra e venda por botões e ver a lista. |
+| v2, completa | `/` | Frase falada ou escrita, botões coloridos, pesagem, gastos, indicadores e cópia de segurança. |
+
+A v1 usa as mesmas regras testadas de `src/` e guarda os dados separados da v2, então uma não
+mexe nos registros da outra.
+
 ## Como testar
 
 ```bash
