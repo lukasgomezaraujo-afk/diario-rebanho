@@ -1,3 +1,5 @@
+<p align="center"><img src="marca/capa-github.png" alt="Diário do Rebanho: o rebanho de cabras, ovelhas e vacas contado no celular, sem internet" width="720"></p>
+
 # Diário do Rebanho
 
 Protótipo para o **3º Hackathon AgroTech Tauá**. Diário de caprinos e ovinos em que o produtor

@@ -1,6 +1,6 @@
 // Arquivos que o celular guarda para abrir o app sem internet.
 // O teste test/offline.test.js confere que nenhum arquivo do app ficou de fora.
-export const VERSAO_CACHE = 'diario-rebanho-3';
+export const VERSAO_CACHE = 'diario-rebanho-4';
 
 export const ARQUIVOS = [
   './',
