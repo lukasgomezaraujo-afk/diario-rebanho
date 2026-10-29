@@ -3,7 +3,8 @@
   --superficie: #ffffff;
   --cinza-claro: #f3f4f6;
   --texto: #111111;
-  --suave: #4b5563;
+  /* Cinza escuro o bastante para ler no sol: 9,4:1 sobre os cartões cinza, 10:1 sobre branco. */
+  --suave: #374151;
   --borda: #6b7280;
   --primaria: #111111;
   --sobre-primaria: #ffffff;
@@ -117,6 +118,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .tile .icone { width: 2.2rem; height: 2.2rem; }
+/* Pesar e gastos aparecem menos no dia a dia: ficam menores para o essencial saltar aos olhos. */
+.tile.secundario { flex-direction: row; min-height: 64px; font-size: .95rem; }
+.tile.secundario .icone { width: 1.6rem; height: 1.6rem; }
 .tile:active { border-color: var(--cor); }
 
 .menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -220,7 +224,7 @@ legend { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; padding: 0; }
   cursor: pointer;
   text-align: center;
 }
-.chip small { display: block; font-weight: 400; font-size: .75rem; color: var(--suave); }
+.chip small { display: block; font-weight: 400; font-size: .8rem; color: var(--suave); }
 .chip.ativo { border-color: var(--primaria); background: var(--primaria); color: var(--sobre-primaria); }
 .chip.ativo small { color: #e5e7eb; }
 
@@ -270,7 +274,7 @@ legend { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; padding: 0; }
 .cartao .formula { font-size: .8rem; color: var(--suave); margin: 4px 0 0; }
 .linha-cat { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid #d1d5db; }
 .linha-cat:first-of-type { border-top: 0; }
-.linha-cat small { display: block; color: var(--suave); font-size: .75rem; }
+.linha-cat small { display: block; color: var(--suave); font-size: .8rem; }
 .linha-cat .final { font-size: 1.3rem; font-weight: 800; white-space: nowrap; }
 
 .mensagem {
