@@ -6,3 +6,4 @@ site/
 public/vendor/
 public/modelo-pt/*.tar.gz
 public/modelo-pt/*.zip
+.taste-skill/

@@ -1,29 +1,31 @@
-:root {
-  --fundo: #ffffff;
-  --superficie: #ffffff;
-  --cinza-claro: #f3f4f6;
-  --texto: #111111;
-  /* Cinza escuro o bastante para ler no sol: 9,4:1 sobre os cartões cinza, 10:1 sobre branco. */
-  --suave: #374151;
-  --borda: #6b7280;
-  --primaria: #111111;
-  --sobre-primaria: #ffffff;
-  --perigo: #b91c1c;
-  --perigo-claro: #fee2e2;
-  --alerta: #92400e;
-  --alerta-claro: #fef3c7;
-  --sucesso: #166534;
-  --sucesso-claro: #dcfce7;
-  --foco: #1d4ed8;
-  --raio: 12px;
+/* Bricolage Grotesque (OFL), guardada no app para funcionar sem internet. */
+@font-face { font-family: "Bricolage"; src: url("fontes/BricolageGrotesque-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Bricolage"; src: url("fontes/BricolageGrotesque-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
 
-  /* Uma cor por tipo de lançamento: fundo claro + texto escuro da mesma família. */
-  --nascimento-claro: #dcfce7; --nascimento: #14532d;
-  --morte-claro: #fee2e2; --morte: #7f1d1d;
-  --venda-claro: #fef3c7; --venda: #78350f;
-  --compra-claro: #dbeafe; --compra: #1e3a8a;
-  --pesagem-claro: #f3e8ff; --pesagem: #581c87;
-  --custo-claro: #e5e7eb; --custo: #111827;
+:root {
+  /* Chão cor de pedra; cartões brancos; tinta quase preta. Uma cor só, a do barro,
+     marca o dado principal (as cabeças do rebanho). Verde e vermelho aparecem só
+     como sinal pequeno de mudança (+ nasceu, − morreu), sempre junto da palavra. */
+  --fundo: #f2f1ee;
+  --superficie: #ffffff;
+  --cinza-claro: #e9e7e2;
+  --linha: #dcd9d2;
+  --texto: #1a1815;
+  /* 8,6:1 sobre branco e 7,8:1 sobre o chão: dá para ler no sol. */
+  --suave: #4a4640;
+  --borda: #8a857c;
+  --primaria: #1a1815;
+  --sobre-primaria: #ffffff;
+  --barro: #9c3d1c;
+  --perigo: #a3261d;
+  --perigo-claro: #fbeae7;
+  --alerta: #7a4a0c;
+  --alerta-claro: #f7efdf;
+  --sucesso: #1f5e2c;
+  --sucesso-claro: #e6f0e6;
+  --foco: var(--barro);
+  --raio: 8px;
+  --raio-controle: 6px;
 }
 
 * { box-sizing: border-box; }
@@ -34,20 +36,20 @@ body {
   margin: 0;
   background: var(--fundo);
   color: var(--texto);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Bricolage", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.4;
+  font-variant-numeric: tabular-nums;
 }
 
 main {
   max-width: 34rem;
   margin: 0 auto;
-  padding: 16px 16px 96px;
+  padding: 20px 16px 96px;
   overflow-wrap: break-word;
 }
 
-h1 { font-size: 1.4rem; margin: 0; }
-.marca { font-weight: 800; margin: 4px 0 16px; }
-.titulo-secao { font-size: 1rem; color: var(--suave); margin: 20px 0 10px; }
+h1 { font-size: 1.4rem; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+.titulo-secao { font-size: .9rem; font-weight: 400; color: var(--suave); margin: 24px 0 10px; }
 
 button, input, textarea, select { font: inherit; color: inherit; }
 
@@ -55,36 +57,38 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
 .icone { width: 1.4em; height: 1.4em; flex: none; }
 
-.tipo-nascimento { --cor-claro: var(--nascimento-claro); --cor: var(--nascimento); }
-.tipo-morte { --cor-claro: var(--morte-claro); --cor: var(--morte); }
-.tipo-venda { --cor-claro: var(--venda-claro); --cor: var(--venda); }
-.tipo-compra { --cor-claro: var(--compra-claro); --cor: var(--compra); }
-.tipo-pesagem { --cor-claro: var(--pesagem-claro); --cor: var(--pesagem); }
-.tipo-custo { --cor-claro: var(--custo-claro); --cor: var(--custo); }
+/* Cabeçalho com a marca: um ferro de marcar, como os criadores do sertão registram o gado. */
+.cabecalho { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; }
+.cabecalho .ferro { width: 44px; height: 44px; flex: none; color: var(--barro); }
+.cabecalho h1 { font-size: 1.25rem; line-height: 1.1; }
+.cabecalho .data-hoje { margin: 2px 0 0; color: var(--suave); font-size: .8rem; }
+.marca { font-weight: 700; margin: 4px 0 16px; }
 
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   min-height: 56px;
   padding: 8px 16px;
-  border: 2px solid var(--primaria);
-  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
   background: var(--superficie);
-  color: var(--primaria);
+  color: var(--texto);
   font-weight: 700;
   cursor: pointer;
   text-align: center;
 }
-.btn.principal { background: var(--primaria); color: var(--sobre-primaria); }
+.btn.principal { border-color: var(--primaria); background: var(--primaria); color: var(--sobre-primaria); }
 .btn.perigo { border-color: var(--perigo); color: var(--perigo); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn + .btn, .btn + .caixa, .caixa + .btn { margin-top: 12px; }
+.btn:active { background: var(--cinza-claro); }
+.btn.principal:active { background: #000; }
 
-.btn.falar { min-height: 72px; font-size: 1.1rem; }
-.btn.falar .icone { width: 1.6em; height: 1.6em; }
+.btn.falar { min-height: 72px; font-size: 1.1rem; border-radius: 999px; }
+.btn.falar .icone { width: 1.5em; height: 1.5em; }
 .btn.ouvindo { background: var(--perigo); border-color: var(--perigo); }
 
 .link {
@@ -95,56 +99,63 @@ button, input, textarea, select { font: inherit; color: inherit; }
   color: var(--texto);
   font-weight: 700;
   text-decoration: underline;
+  text-underline-offset: 3px;
   cursor: pointer;
 }
 
-.dica { text-align: center; color: var(--suave); margin: 8px 0 0; }
+.dica { text-align: center; color: var(--suave); margin: 8px 0 0; font-size: .85rem; }
 
-.acoes-tipo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+/* Os quatro acontecimentos do dia a dia: cartões brancos, ícone e palavra em tinta. */
+.acoes-tipo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
 .tile {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 96px;
-  padding: 12px 8px;
-  border: 2px solid transparent;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 104px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--linha);
   border-radius: var(--raio);
-  background: var(--cor-claro);
-  color: var(--cor);
-  font-weight: 800;
-  font-size: 1.05rem;
+  background: var(--superficie);
+  color: var(--texto);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: left;
   cursor: pointer;
 }
-.tile .icone { width: 2.2rem; height: 2.2rem; }
-/* Pesar e gastos aparecem menos no dia a dia: ficam menores para o essencial saltar aos olhos. */
-.tile.secundario { flex-direction: row; min-height: 64px; font-size: .95rem; }
-.tile.secundario .icone { width: 1.6rem; height: 1.6rem; }
-.tile:active { border-color: var(--cor); }
+.tile .icone { width: 2rem; height: 2rem; }
+/* Pesar e gastos aparecem menos no dia a dia: ficam mais baixos para o essencial saltar aos olhos. */
+.tile.secundario { flex-direction: row; align-items: center; justify-content: flex-start; min-height: 64px; font-size: .95rem; background: transparent; }
+.tile.secundario .icone { width: 1.5rem; height: 1.5rem; }
+.tile:active { border-color: var(--texto); background: var(--cinza-claro); }
 
-.menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .menu .btn + .btn { margin-top: 0; }
 @media (max-width: 420px) {
   .menu { grid-template-columns: 1fr; }
+  .menu .btn { justify-content: flex-start; }
 }
 .rodape { text-align: center; margin-top: 16px; }
 
 a.btn { text-decoration: none; }
 .btn + a.btn, a.btn + .btn { margin-top: 12px; }
-.btn.colorido { border-color: transparent; background: var(--cor-claro); color: var(--cor); }
 legend small, .rotulo small { font-weight: 400; color: var(--suave); }
 .dica-esquerda { color: var(--suave); margin: 8px 0; }
 
-/* Seu rebanho hoje */
-.rebanho-hoje { margin: 0 0 20px; padding: 16px; border-radius: var(--raio); background: var(--cinza-claro); }
-.rebanho-hoje h2 { font-size: 1rem; color: var(--suave); margin: 0 0 8px; }
-.especie-hoje + .especie-hoje { border-top: 1px solid #d1d5db; margin-top: 10px; padding-top: 10px; }
-.especie-total { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; }
-.especie-total strong { font-size: 1.8rem; font-weight: 800; }
-.especie-detalhe { margin: 0; color: var(--suave); font-size: .85rem; }
+/* Seu rebanho hoje: um número grande por espécie e uma marca por cabeça. */
+.rebanho-hoje { margin: 0 0 16px; padding: 16px; border: 1px solid var(--linha); border-radius: var(--raio); background: var(--superficie); }
+.rebanho-hoje h2 { font-size: .9rem; font-weight: 400; color: var(--suave); margin: 0 0 4px; }
+.especie-hoje { padding: 12px 0 0; }
+.especie-hoje + .especie-hoje { border-top: 1px solid var(--linha); margin-top: 14px; padding-top: 14px; }
+.especie-total { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; font-size: 1.05rem; }
+.especie-total strong { font-size: 2.2rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
+.especie-detalhe { margin: 2px 0 0; color: var(--suave); font-size: .85rem; }
+.cabecas { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 0; padding: 0; list-style: none; align-items: center; }
+.cabecas i { width: 12px; height: 12px; border-radius: 50%; background: var(--barro); }
+.cabecas .mais { font-size: .8rem; font-weight: 700; color: var(--barro); margin-left: 2px; }
 
-.especie-titulo { font-weight: 800; margin: 14px 0 6px; }
+.especie-titulo { font-weight: 700; margin: 16px 0 6px; }
 .especie-titulo:first-child { margin-top: 0; }
 
 /* Animais */
@@ -165,14 +176,15 @@ legend small, .rotulo small { font-weight: 400; color: var(--suave); }
 .acoes-animal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
 .acoes-animal .btn { margin: 0; padding: 8px 4px; }
 #detalhe-animal > .btn.perigo { margin-top: 20px; }
-.cartao .numero small { font-size: .9rem; font-weight: 600; color: var(--suave); }
+.cartao .numero small { font-size: .9rem; font-weight: 400; color: var(--suave); }
 
-.topo { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.topo { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.topo h1 { font-size: 1.25rem; }
 .voltar {
   min-height: 56px;
-  padding: 0 12px;
-  border: 2px solid var(--borda);
-  border-radius: var(--raio);
+  padding: 0 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
   background: var(--superficie);
   font-weight: 700;
   cursor: pointer;
@@ -180,15 +192,15 @@ legend small, .rotulo small { font-weight: 400; color: var(--suave); }
 
 .caixa {
   padding: 16px;
-  border: 2px solid var(--borda);
+  border: 1px solid var(--linha);
   border-radius: var(--raio);
   background: var(--superficie);
 }
 .caixa p { margin: 0 0 8px; }
 .caixa p:last-child { margin-bottom: 0; }
-.caixa.destaque { border-color: var(--sucesso); background: var(--sucesso-claro); margin-bottom: 16px; }
+.caixa.destaque { margin-bottom: 16px; }
 .caixa.alerta { border-color: var(--alerta); background: var(--alerta-claro); }
-.confianca-alta { border-color: var(--sucesso); background: var(--sucesso-claro); }
+.confianca-alta { border-color: var(--sucesso); }
 .confianca-media { border-color: var(--alerta); background: var(--alerta-claro); }
 .confianca-baixa { border-color: var(--perigo); background: var(--perigo-claro); }
 
@@ -198,8 +210,8 @@ input, textarea, select {
   width: 100%;
   min-height: 56px;
   padding: 10px 12px;
-  border: 2px solid var(--borda);
-  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
   background: var(--superficie);
 }
 textarea { resize: vertical; margin-bottom: 12px; }
@@ -217,8 +229,8 @@ legend { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; padding: 0; }
   gap: 2px;
   min-height: 56px;
   padding: 8px;
-  border: 2px solid var(--borda);
-  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
   background: var(--superficie);
   font-weight: 700;
   cursor: pointer;
@@ -226,38 +238,34 @@ legend { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; padding: 0; }
 }
 .chip small { display: block; font-weight: 400; font-size: .8rem; color: var(--suave); }
 .chip.ativo { border-color: var(--primaria); background: var(--primaria); color: var(--sobre-primaria); }
-.chip.ativo small { color: #e5e7eb; }
-
-/* Chip de tipo: mesma cor do botão da tela inicial. */
-.chip[class*="tipo-"] { flex-direction: row; gap: 8px; border-color: transparent; background: var(--cor-claro); color: var(--cor); }
-.chip[class*="tipo-"].ativo { border-color: var(--cor); background: var(--cor); color: var(--sobre-primaria); }
+.chip.ativo small { color: #e4e1db; }
+.chip[class*="tipo-"] { flex-direction: row; gap: 8px; }
 
 .erros { color: var(--perigo); font-weight: 700; }
 .erros p { margin: 8px 0; }
 
-.transcricao { font-size: 1.1rem; font-style: italic; margin: 12px 0 0; }
+.transcricao { font-size: 1.1rem; margin: 12px 0 0; }
 
 .entendi { font-size: 1.15rem; }
-.certeza { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.certeza { font-size: .85rem; font-weight: 700; }
 .avisos { margin: 8px 0; padding-left: 1.2em; }
 .acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .acoes .btn + .btn { margin-top: 0; }
 
-.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.item { padding: 12px; border: 2px solid var(--borda); border-radius: var(--raio); background: var(--superficie); }
-.item .data { color: var(--suave); }
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.item { padding: 12px 14px; border: 1px solid var(--linha); border-radius: var(--raio); background: var(--superficie); }
+.item .data { color: var(--suave); font-size: .85rem; }
 .etiqueta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--cor-claro);
-  color: var(--cor);
-  font-weight: 800;
-  font-size: .85rem;
+  font-weight: 700;
 }
 .etiqueta .icone { width: 1.1rem; height: 1.1rem; }
+/* O sinal de mudança: pequeno, junto da palavra, nunca a cor sozinha. */
+.tipo-nascimento .icone { color: var(--sucesso); }
+.tipo-morte .icone { color: var(--perigo); }
+.chip.ativo .icone, .btn.principal .icone { color: inherit; }
 .vazio { color: var(--suave); text-align: center; padding: 24px 0; }
 
 .campos-saldo { display: grid; gap: 4px; }
@@ -268,14 +276,14 @@ legend { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; padding: 0; }
 .periodo .titulo { text-align: center; font-weight: 700; font-size: 1.1rem; }
 .periodo .chip { padding: 0; }
 
-.cartao { padding: 16px; border: 2px solid var(--cinza-claro); border-radius: var(--raio); background: var(--cinza-claro); margin-bottom: 12px; }
-.cartao h2 { font-size: 1rem; margin: 0 0 4px; color: var(--suave); }
-.cartao .numero { font-size: 1.8rem; font-weight: 800; }
+.cartao { padding: 16px; border: 1px solid var(--linha); border-radius: var(--raio); background: var(--superficie); margin-bottom: 8px; }
+.cartao h2 { font-size: .9rem; font-weight: 400; margin: 0 0 4px; color: var(--suave); }
+.cartao .numero { font-size: 2rem; font-weight: 700; letter-spacing: -.02em; }
 .cartao .formula { font-size: .8rem; color: var(--suave); margin: 4px 0 0; }
-.linha-cat { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid #d1d5db; }
+.linha-cat { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--linha); }
 .linha-cat:first-of-type { border-top: 0; }
 .linha-cat small { display: block; color: var(--suave); font-size: .8rem; }
-.linha-cat .final { font-size: 1.3rem; font-weight: 800; white-space: nowrap; }
+.linha-cat .final { font-size: 1.3rem; font-weight: 700; white-space: nowrap; }
 
 .mensagem {
   position: fixed;
@@ -286,16 +294,16 @@ legend { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; padding: 0; }
   margin: 0 auto;
   padding: 14px 16px;
   border-radius: var(--raio);
-  background: #111111;
-  color: #ffffff;
+  background: var(--primaria);
+  color: var(--sobre-primaria);
   font-weight: 700;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
 }
 
 dialog {
   width: min(28rem, calc(100% - 32px));
-  border: 2px solid var(--texto);
+  border: 1px solid var(--texto);
   border-radius: var(--raio);
   padding: 20px;
+  color: var(--texto);
 }
-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+dialog::backdrop { background: rgba(26, 24, 21, .55); }

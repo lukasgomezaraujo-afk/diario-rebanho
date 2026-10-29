@@ -155,7 +155,17 @@ const mostrarErros = (seletor, erros) => { $(seletor).innerHTML = erros.map((e) 
 
 // ---------- Início: o rebanho hoje ----------
 
+// Uma marca por cabeça, como o campo de marcas do cartaz. Acima de MAX_MARCAS, mostra "+N".
+const MAX_MARCAS = 60;
+function cabecas(total) {
+  if (total <= 0) return '';
+  const marcas = '<i></i>'.repeat(Math.min(total, MAX_MARCAS));
+  const resto = total > MAX_MARCAS ? `<span class="mais">+${total - MAX_MARCAS}</span>` : '';
+  return `<div class="cabecas" aria-hidden="true">${marcas}${resto}</div>`;
+}
+
 function renderInicio() {
+  $('#data-hoje').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   const resumo = resumoPorEspecie(saldoAtual(estado.saldoBase, estado.registros, hoje()));
   const especies = Object.entries(resumo);
   const alvo = $('#rebanho-hoje');
@@ -172,6 +182,7 @@ function renderInicio() {
       <div class="especie-hoje">
         <div class="especie-total"><span>${NOMES_ESPECIE[especie]}</span><strong>${e.total}</strong></div>
         <p class="especie-detalhe">${Object.entries(e.categorias).filter(([, n]) => n !== 0).map(([c, n]) => `${nomeCategoria(c, n)} ${n}`).join(' · ') || 'nenhum animal agora'}</p>
+        ${cabecas(e.total)}
       </div>`).join('')}
     ${temContagemInicial(estado.saldoBase) ? '' : '<p class="dica-esquerda">Contando só o que você anotou. <button class="link" data-acao="contar">Informar os animais que você já tinha</button></p>'}`;
 }

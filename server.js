@@ -18,6 +18,8 @@ const TIPOS = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain; charset=utf-8',
   '.wasm': 'application/wasm',
   '.gz': 'application/gzip',
 };
